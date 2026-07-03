@@ -2,7 +2,7 @@ const APP_CACHE = "app-shell-v1";
 
 // List of core files for offline availability
 const APP_ASSETS = [
-  "addbook.html",
+  "index.html",
   "index.js",
   "sw.js",
   "images/ibra192.png",
