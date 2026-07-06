@@ -346,13 +346,13 @@ async function initReport() {
       await idbSetMeta("data_updated_at", serverTimestamp);
 
       showReport(addBookData, "Server (updated)", serverTimestamp);
-      showUpdateModal("Latest Data Loaded ‼️");
+      showUpdateModal("Latest Data Loaded");
       //document.getElementById("loader").style.display="none"
     }
     document.getElementById("loader").style.display="none"
 document.getElementById("datadate").style.display="block"
 document.getElementById("datadate").innerHTML= new Date().toLocaleString('en-GB', {timeZone: 'Asia/Kolkata'})
-    showUpdateModal("Data Loaded ❗ ");
+    showUpdateModal("Data Loaded");
     
   } catch (err) {
     console.error("Background refresh failed", err);
