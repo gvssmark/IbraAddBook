@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -103,6 +105,100 @@ function formatDate(input) {
   return isNaN(date) ? 'NA' : date.toLocaleString('en-GB');
 }
 
+//==== IndexedDB storage layer ====
+const IDB_NAME = 'ibraDB';
+// NOTE: never lower this number again - a browser that has already opened
+// the DB at a higher version (e.g. during earlier testing) will throw
+// VersionError if a page later requests a lower version. Always bump forward.
+const IDB_VERSION = 3;
+let idbPromise;
+
+function openDB() {
+  if (idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('addbook')) {
+        const store = db.createObjectStore('addbook', { keyPath: 'id' });
+        store.createIndex('area', 'area');
+        store.createIndex('srno', 'srno');
+        store.createIndex('name', 'name');
+      }
+      if (!db.objectStoreNames.contains('meta')) {
+        db.createObjectStore('meta');
+      }
+      // Note: 'photos' and 'photoBlobs' stores may exist from earlier testing
+      // (photoid now lives directly on each addbook record instead).
+      // They're unused now and harmless to leave in place.
+    };
+    req.onblocked = () => {
+      // Another tab still has an older-version connection open, so the
+      // upgrade can't proceed. Fail loudly instead of hanging forever.
+      console.error('IndexedDB upgrade blocked - close other open tabs of this app and reload.');
+      reject(new Error('IndexedDB upgrade blocked by another open tab'));
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return idbPromise;
+}
+
+async function idbPutAll(storeName, items) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    store.clear();
+    let skipped = 0;
+    items.forEach(item => {
+      try {
+        store.put(item);
+      } catch (err) {
+        // e.g. invalid key (NaN, undefined, etc) from a malformed source row -
+        // skip just this record instead of aborting every record after it
+        skipped++;
+        console.warn(`Skipped invalid record in "${storeName}":`, item, err);
+      }
+    });
+    if (skipped > 0) {
+      console.warn(`${storeName}: skipped ${skipped} of ${items.length} record(s) due to invalid data`);
+    }
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbGetAll(storeName) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbSetMeta(key, value) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('meta', 'readwrite');
+    tx.objectStore('meta').put(value, key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbGetMeta(key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('meta', 'readonly');
+    const req = tx.objectStore('meta').get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
 //==== Fetch Data Functions ====
 async function fetchJson(url) {
   const res = await fetch(url, { cache: 'no-store' });
@@ -121,40 +217,22 @@ async function fetchLatestTimestamp() {
     return text;
   }
 }
-async function cacheData(key, data) {
-  const cache = await caches.open('addbook');
-  const response = new Response(JSON.stringify(data), { headers: { 'Content-Type': 'application/json' } });
-  await cache.put(key, response);
-}
-async function readCachedData(key) {
-  const cache = await caches.open('addbook');
-  const response = await cache.match(key);
-  if (!response || !response.ok) return null;
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
 async function fetchAddBookData() {
   const url = 'https://script.google.com/macros/s/AKfycbwIVAlRrCTt6z_Ej4W6PHhopFqCq1JvEsSoN2RPqgWY7VXLW0P2pteA1jgVFaWePc2S/exec';
   let data = await fetchJson(url);
   data.shift(); // remove header
-  const formatted = data.map(([id, name, add1, add2, add3, district, place, pincode, fixed, mobile1, mobile2, state, email, srno, sbac, doj, dor, spname, area, blank1, dob, fampen, pensionbr, scanned, newempid, dod, blank2, blank3, blank4]) => ({
-    id, name, add1, add2, add3, district, place, pincode, fixed, mobile1, mobile2, state, email, srno, sbac,
+  let formatted = data.map(([id, name, add1, add2, add3, district, place, pincode, fixed, mobile1, mobile2, state, email, srno, sbac, doj, dor, spname, area, blank1, dob, fampen, pensionbr, scanned, newempid, dod, photoid, blank3, blank4]) => ({
+    id: Number(id), name, add1, add2, add3, district, place, pincode, fixed, mobile1, mobile2, state, email, srno, sbac,
     doj: ddmmyy(doj), dor: ddmmyy(dor), spname, area, blank1, dob: ddmmyy(dob), fampen, pensionbr, scanned, newempid, dod: ddmmyy(dod),
-    blank2, blank3, blank4
+    photoid, blank3, blank4
   }));
-  await cacheData('/custom/addbookdata.json', formatted);
+  const totalBefore = formatted.length;
+  formatted = formatted.filter(r => !isNaN(r.id));
+  if (formatted.length < totalBefore) {
+    console.warn(`addbook: dropped ${totalBefore - formatted.length} row(s) with invalid/blank id out of ${totalBefore}`);
+  }
+  await idbPutAll('addbook', formatted);
   return formatted;
-}
-async function fetchPhotoData() {
-  const url = 'https://script.google.com/macros/s/AKfycbw_h5LMGCyIraesAhh6xlkeP8RUz3HO4ga4Q8XZaJhJRpnuQqp3TWUUZyodZPxpeA7A/exec';
-  let data = await fetchJson(url);
-  data.shift();
-  const photos = data.map(([id, photoid]) => ({ id, photoid }));
-  await cacheData('/custom/addbookphotodata.json', photos);
-  return photos;
 }
 
 //==== Init with Cache-then-Network Strategy ====
@@ -162,35 +240,90 @@ async function fetchPhotoData() {
 
 
 //==== Report Renderer ====
-function showReport(addBookData, photoData, source, serverTimestamp) {
+function showReport(addBookData, source, serverTimestamp) {
   document.getElementById("DataLoadedFrom").textContent =    `Report from: ${source} - ${formatDate(serverTimestamp-(5.5*60*60*1000))}`;
- // document.getElementById("Addressbookdata").textContent =    "Addressbook Records: " + (addBookData ? addBookData.length : 0);
- // document.getElementById("Photodata").textContent =    "Photo Records: " + (photoData ? photoData.length : 0);
- /// document.getElementById("DataLastUpdatedOn").textContent =    "Data Last Updated on: " + formatDate(serverTimestamp-(5.5*60*60*1000));
-  processData(addBookData, photoData);
-  
-    data = addBookData
-    //console.log(addBookData)
-    photodata = photoData
-    isPhoto = (id) => photodata.some(a => a.id.toString() === id.toString()) ? '<span>👨</span>' : '';
-    processData(addBookData, photoData);
-    console.log(activeMembers)
-    console.log(photodata)
-    selectedRegion('allmemb', 0);
+  processData(addBookData);
+  console.log(activeMembers)
 }
 
 
+// One-time migration for users still on the old version, which stored the
+// timestamp in localStorage and the actual data in the Cache API. Runs once,
+// flagged in IndexedDB so it never repeats, and stops touching localStorage
+// or the old cache entirely from then on. Migrating the cached data (not just
+// the timestamp) means upgrading users see their existing data immediately
+// instead of a brief "waiting for server" empty state.
+const LEGACY_MIGRATION_FLAG = 'migratedFromLocalStorage_v1';
+const LEGACY_CACHE_NAME = 'addbook';
+
+async function migrateLegacyStorage() {
+  try {
+    const alreadyMigrated = await idbGetMeta(LEGACY_MIGRATION_FLAG);
+    if (alreadyMigrated) return;
+  } catch (err) {
+    console.warn('Could not check migration flag, proceeding cautiously:', err);
+  }
+
+  // 1. Migrate the timestamp from localStorage
+  try {
+    const legacyTimestamp = localStorage.getItem('data_updated_at');
+    if (legacyTimestamp) {
+      const existing = await idbGetMeta('data_updated_at');
+      if (!existing) {
+        await idbSetMeta('data_updated_at', legacyTimestamp);
+        console.log('Migrated data_updated_at from localStorage to IndexedDB');
+      }
+      localStorage.removeItem('data_updated_at');
+    }
+  } catch (err) {
+    // localStorage may be unavailable (private browsing etc) - safe to skip
+    console.warn('Legacy localStorage migration skipped:', err);
+  }
+
+  // 2. Migrate the actual records from the old Cache API storage, so
+  //    upgrading users get an instant report instead of an empty state
+  //    while waiting for the network fetch to complete. (Note: this old
+  //    cached data predates the photoid column, so photos won't show until
+  //    the next background refresh pulls the updated addbook rows - that's
+  //    expected and harmless.)
+  try {
+    const existingAddbook = await idbGetAll('addbook');
+    if ((!existingAddbook || !existingAddbook.length) && 'caches' in window) {
+      const cache = await caches.open(LEGACY_CACHE_NAME);
+
+      const addbookResp = await cache.match('/custom/addbookdata.json');
+      if (addbookResp && addbookResp.ok) {
+        const oldAddbook = await addbookResp.json();
+        if (Array.isArray(oldAddbook) && oldAddbook.length) {
+          // Ensure ids are normalized to Number for consistent IndexedDB keys,
+          // and drop any row with an invalid/blank id (would otherwise abort
+          // the whole batch when idbPutAll tries to write it)
+          const normalized = oldAddbook.map(r => ({ ...r, id: Number(r.id) })).filter(r => !isNaN(r.id));
+          await idbPutAll('addbook', normalized);
+          console.log('Migrated', normalized.length, 'addbook records from Cache API to IndexedDB');
+        }
+      }
+
+      // Clean up the old cache now that its contents have been migrated
+      await caches.delete(LEGACY_CACHE_NAME);
+    }
+  } catch (err) {
+    console.warn('Legacy Cache API migration skipped:', err);
+  }
+
+  await idbSetMeta(LEGACY_MIGRATION_FLAG, true);
+}
+
 async function initReport() {
-  // 1. Try cache first (instant report)
-  let [addBookData, photoData] = await Promise.all([
-    readCachedData('/custom/addbookdata.json'),
-    readCachedData('/custom/addbookphotodata.json')
-  ]);
+  await migrateLegacyStorage();
 
-  const localTimestamp = localStorage.getItem("data_updated_at");
+  // 1. Try IndexedDB first (instant report)
+  let addBookData = await idbGetAll('addbook');
 
-  if (addBookData && photoData && localTimestamp) {
-    showReport(addBookData, photoData, "Saved & Latest", localTimestamp);
+  let localTimestamp = await idbGetMeta("data_updated_at");
+
+  if (addBookData && addBookData.length && localTimestamp) {
+    showReport(addBookData, "Saved & Latest", localTimestamp);
   } else {
     document.getElementById("DataLoadedFrom").textContent = "No cache, waiting for server...";
   }
@@ -198,9 +331,9 @@ async function initReport() {
   // 2. In background, check server timestamp
   try {
     const serverTimestamp = await fetchLatestTimestamp();
-    const localTimestamp = localStorage.getItem("data_updated_at");
+    localTimestamp = await idbGetMeta("data_updated_at");
 
-    if (!addBookData || !photoData || localTimestamp != serverTimestamp) {
+    if (!addBookData.length || localTimestamp != serverTimestamp) {
 
       // 👉 Show modal ONLY if timestamps differ (and not first load)
       if (localTimestamp && localTimestamp != serverTimestamp) {
@@ -208,14 +341,11 @@ async function initReport() {
       }
 
       // Fetch fresh if missing or outdated
-      [addBookData, photoData] = await Promise.all([
-        fetchAddBookData(),
-        fetchPhotoData()
-      ]);
+      addBookData = await fetchAddBookData();
 
-      localStorage.setItem("data_updated_at", serverTimestamp);
+      await idbSetMeta("data_updated_at", serverTimestamp);
 
-      showReport(addBookData, photoData, "Server (updated)", serverTimestamp);
+      showReport(addBookData, "Server (updated)", serverTimestamp);
       showUpdateModal("Latest Data Loaded");
       //document.getElementById("loader").style.display="none"
     }
@@ -229,10 +359,14 @@ document.getElementById("datadate").innerHTML= new Date().toLocaleString('en-GB'
   }
   
 }
-initReport();
+initReport().catch(err => {
+  console.error('initReport failed:', err);
+  document.getElementById("loader").style.display = "none";
+  document.getElementById("DataLoadedFrom").textContent = "Could not load data. Please reload the page.";
+});
 
 
-function processData(addBookData, photoData) {
+function processData(addBookData) {
   console.log(addBookData);
   let data = addBookData;
 
@@ -243,32 +377,34 @@ function processData(addBookData, photoData) {
   });
 
   familyPensioners = activeMembers.filter(a => a.fampen !== "")
-    .map(a => ({ id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB }));
+    .map(a => ({ id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB, photoid: a.photoid }));
 
   blank = activeMembers.filter(a => a.area === "BLANK")
-    .map(a => ({ id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB, srno: a.srno, mobile: a.mobile1 }));
+    .map(a => ({ id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB, srno: a.srno, mobile: a.mobile1, photoid: a.photoid }));
 
   allMembNoWise = activeMembers.map(a => ({
     id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB,
-    srno: a.srno, mobile: a.mobile1, newempid: a.newempid
+    srno: a.srno, mobile: a.mobile1, newempid: a.newempid, photoid: a.photoid
   })).sort((a, b) => a.srno - b.srno);
 
   allmemb = activeMembers.map(a => ({
     id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB,
-    srno: a.srno, mobile: a.mobile1, newempid: a.newempid
+    srno: a.srno, mobile: a.mobile1, newempid: a.newempid, photoid: a.photoid
   }));
 
-  photodata = photoData.map(({ id, photoid }) => ({ id, photoid }));
-  isPhoto = (id) => photodata.some(a => a.id.toString() === id.toString()) ? '<span>👨</span>' : '';
-
   selectedRegion('allmemb', 0);
+}
+
+// A member has a photo if their addbook record has a non-empty photoid
+function isPhoto(photoid) {
+  return photoid ? '<span>👨</span>' : '';
 }
 
 
 function selectedRegion(array, n) {
                 let tany = activeMembers.filter(a => a.area.includes(array)).map(a => ({
                     id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB,
-                    srno: a.srno, mobile: a.mobile1, newempid: a.newempid
+                    srno: a.srno, mobile: a.mobile1, newempid: a.newempid, photoid: a.photoid
                 }));
                 let tarr = array === 'allmemb' ? allmemb : array === 'allMembNoWise' ? allMembNoWise : tany;
                 document.getElementById("myInput").value = "";
@@ -291,7 +427,7 @@ function selectedRegion(array, n) {
                                 <span class="pname">${a.name}</span>
                                 ${a.fampen.length > 0 ? `<span class="smallbadge">&nbsp;</span><br>Family Pension of: ${a.fampen}` : ``}
                                 ${a.ibeab === 'EAB' ? `<span class="smalleabbadge">&nbsp;</span>` : ``}
-                                <br> Mobile: ${a.mobile} / SR: ${a.srno} /<span class=newempid>${a.newempid}</span> / Memb: ${a.id}  ${isPhoto(a.id)}
+                                <br> Mobile: ${a.mobile} / SR: ${a.srno} /<span class=newempid>${a.newempid}</span> / Memb: ${a.id}  ${isPhoto(a.photoid)}
                             </td>
                         </tr>`;
                 });
@@ -317,9 +453,8 @@ function selectedRegion(array, n) {
                 let toDisplay = "<table border=1><tr>";
                 document.getElementById("myInput").value = "";
                 let membno = membershipNo * 1;
-                 memphotoid = photodata.filter(a => a.id.toString() === membershipNo.toString());
-                 memphoto = memphotoid.length>0 ? `<img  src='https://drive.google.com/thumbnail?id=${memphotoid[0].photoid}' height=100 width=100'>` :""
                 let membData = activeMembers.filter(a => a.id === membno);
+                memphoto = membData[0].photoid ? `<img  src='https://drive.google.com/thumbnail?id=${membData[0].photoid}' height=100 width=100'>` :""
                 let dob = membData[0].dob;
                 let doj = membData[0].doj;
                 let dor = membData[0].dor;
