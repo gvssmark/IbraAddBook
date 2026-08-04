@@ -1,106 +1,305 @@
-
-
-
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, maximum-scale=1 , initial-scale=1.0">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins&effect=neon|outline|emboss|shadow-multiple">
-    <title>IBRA</title>
-    <script src="index.js" defer></script>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#004080" />
-    <link rel="apple-touch-icon" href="images/ibra512.png">
+  <meta name="viewport" content="width=device-width, maximum-scale=1, initial-scale=1.0">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poppins:500,600,700&effect=neon|outline|emboss|shadow-multiple">
+  <title>IBRA</title>
+  <script src="index.js" defer></script>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#003B73" />
+  <link rel="apple-touch-icon" href="images/ibra512.png">
   <style>
-    body{background:wheat;font-size:small;margin:0 auto;box-sizing:border-box;width:100%;max-width:500px; position: relative;}
-    h2{position:fixed;top:0;width:100%;max-width:480px;background:#004080;color:#fff;text-align:center;padding:10px;margin:0;z-index:1000; }
-    #regions{margin-top:141px}
-    #DataLoadedFrom{text-align:center;margin-top:141px;display: none;}
-    .pname{font-family:Poppins,sans-serif;text-shadow:3px 3px 3px #ababab;font-size:25px}
-    a{text-decoration:none}
-    .active,.btn:hover{background:red;color:#fff}
-    #regionTable td:hover{background:#9999997d;color:#fff}
-    ul{list-style-type:none;margin:-1px 0;padding:2px;overflow:hidden;background:#333;padding-bottom:5px; display:flex; justify-content:space-evenly }
-    li{float:left;font-size:small}
-    .list{display:block;color:#fff;text-align:center;padding:2px 6px}
-    table{border-collapse:collapse;width:100%;border:1px solid #000;font-size:small}
-    #myInput{width:90%;margin:5px auto;display:block;height:30px;border-radius:15px;background:cyan;border:0;outline:0}
-    .modal{display:none;position:fixed;z-index:2;padding-top:1px;left:0;top:0;width:100%;height:100%;overflow:auto;background:rgba(0,0,0,.4)}
-    .modal-content{background:#99ffcc;margin:0 auto;padding:5px;border:1px solid #888;max-width:430px; ;border-radius:15px;margin-top:153px}
-    .close{color:#aaa;float:right;font-size:28px;font-weight:bold;cursor:pointer}
-    .close:hover{color:#000}
-    .badge,.badge1,.eabbadge,.smallbadge,.smalleabbadge{display:inline-block;text-align:center;vertical-align:baseline;border-radius:50px}
-    .badge{width:25px;height:25px;line-height:25px;font-size:x-small;color:#fff;background:#d73d33}
-    .badge1{width:25px;height:25px;line-height:25px;font-size:small;color:#000;background:yellow}
-    .eabbadge{width:25px;height:25px;line-height:25px;font-size:small;color:#000;background:pink}
-    .smallbadge{width:10px;height:10px;line-height:10px;color:green;background:yellow}
-    .smalleabbadge{width:10px;height:10px;line-height:10px;color:green;background:pink}
-    button{background:yellow;border:0;width:170px;padding:5px;border-radius:15px;box-shadow:3px 5px #888;margin-left:5px}
-    img{border-radius:50px}
-    #topBtn{display:none;position:fixed;bottom:20px;right:  3px; z-index:99; ;border:none;outline:none;width:45px;height:45px;border-radius:50%;cursor:pointer;font-size:18px}
-    #paraInThisRegion {}
-#loader{    position:fixed;    margin-top:-74px;    z-index:1000;    font-size:large;    font-weight:bold;    animation: flashText .8s infinite;}
-#loader::before{    content:"Updating Data";}
-@keyframes flashText {0%,100%{ color:white; } 50%{ color:red; }}
+    /* ===== Design tokens =====
+       Institutional navy + brass passbook-stamp gold, echoing a bank
+       passbook / membership-card feel — grounded in "retired bank
+       employees' association". Cream card surface for legibility,
+       generous touch targets throughout for an older audience. */
+    :root{
+      --navy:#00366b;
+      --navy-dark:#00203f;
+      --gold:#c79a2c;
+      --cream:#faf6ec;
+      --card:#ffffff;
+      --ink:#20262e;
+      --muted:#667085;
+      --red:#c0392b;
+      --green:#1b7a3d;
+      --line:#e6e1d3;
+      --maxw:500px;
+      --radius:16px;
+      --header-h:56px;
+    }
+    *{box-sizing:border-box}
+    body{
+      background:var(--cream);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+      font-size:15px;
+      color:var(--ink);
+      margin:0 auto;
+      width:100%;
+      max-width:var(--maxw);
+      position:relative;
+      -webkit-tap-highlight-color:transparent;
+    }
+    a{text-decoration:none;color:inherit}
+    img{border-radius:50%}
 
-.coin {  width: 75px; margin-top:-71px; right:  3px;  z-index:1000;  height: 75px;  position: fixed;  perspective: 1000px;  animation: flip 10s linear infinite; /* Move animation here */  transform-style: preserve-3d; /* Important for 3D */}
-.coin .side {  position: absolute;  width: 100%;  height: 100%;  backface-visibility: hidden;  /* Remove animation from here */}
-.coin .back {  transform: rotateY(180deg);}
-@keyframes flip { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); }}
-    @media (min-width: 500px) {
-    .coin {right: calc((100vw - 500px) / 2 + 3px);}
-    #topBtn{right: calc((100vw - 500px) / 2 + 3px);}
-}
+    /* ---- Sticky header block (replaces old fixed+magic-margin layout) ---- */
+    #appHeader{position:sticky;top:0;z-index:500;width:100%}
+    .topbar{
+      display:flex;align-items:center;gap:10px;
+      background:var(--navy);color:#fff;
+      min-height:var(--header-h);padding:0 6px;
+    }
+    .hamburger{
+      background:transparent;border:0;box-shadow:none;width:44px;height:44px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:22px;color:#fff;cursor:pointer;margin:0;border-radius:8px;
+    }
+    .hamburger:active{background:rgba(255,255,255,.15)}
+    .topbar h1{
+      font-family:Poppins,sans-serif;font-weight:600;font-size:16px;
+      margin:0;padding:8px 4px;line-height:1.25;flex:1;
+    }
+    .subbar{background:#eef1f6;border-bottom:1px solid var(--line);padding:8px 10px}
+    #regionHeading{
+      margin:0 0 8px;text-align:center;font-family:Poppins,sans-serif;
+      font-weight:600;font-size:14px;color:var(--navy-dark);
+    }
+    #myInput{
+      width:100%;height:40px;border-radius:20px;border:1px solid var(--line);
+      background:#fff;padding:0 16px;font-size:15px;outline:0;display:block;
+    }
+    #myInput:focus{border-color:var(--gold)}
+    #datadate{font-size:11px;color:#dfe7f2;text-align:center;padding:2px 0 0}
+    #loader{
+      display:block;text-align:center;font-size:12px;font-weight:700;
+      background:var(--navy-dark);color:#fff;padding:3px 0;
+      animation:flashText .8s infinite;
+    }
+    #loader::before{content:"Updating Data";}
+    @keyframes flashText{0%,100%{color:#fff}50%{color:var(--gold)}}
+    #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0}
+
+    /* ---- Hamburger drawer (constrained to the app's own column, even
+       on desktop, so the overall footprint never changes) ---- */
+    .drawer-backdrop{
+      display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:900;
+    }
+    .drawer-backdrop.open{display:block}
+    .drawer{
+      position:fixed;top:0;bottom:0;left:calc((100vw - var(--maxw)) / 2);
+      width:78%;max-width:300px;background:var(--navy-dark);color:#fff;
+      z-index:950;transform:translateX(-105%);transition:transform .25s ease;
+      display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.3);
+    }
+    @media (max-width:499px){ .drawer{left:0} }
+    .drawer.open{transform:translateX(0)}
+    .drawer-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:16px;border-bottom:1px solid rgba(255,255,255,.12);
+    }
+    .drawer-head img{width:40px;height:40px;border-radius:8px}
+    .drawer-close{background:transparent;box-shadow:none;color:#fff;font-size:22px;width:36px;height:36px;border-radius:8px;margin:0}
+    .drawer-list{list-style:none;margin:0;padding:8px 0;overflow-y:auto;flex:1}
+    .drawer-item{
+      padding:14px 18px;font-size:15px;cursor:pointer;
+      border-left:4px solid transparent;display:flex;justify-content:space-between;
+    }
+    .drawer-item:active{background:rgba(255,255,255,.08)}
+    .drawer-item.active{border-left-color:var(--gold);background:rgba(199,154,44,.15);font-weight:600}
+    .drawer-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.12);font-size:11px;color:#b9c4d3}
+    .drawer-footer a{color:var(--gold);text-decoration:underline}
+
+    /* ---- Region list ---- */
+    #paraInThisRegion{padding:0 8px 90px}
+    table{border-collapse:collapse;width:100%;font-size:14px}
+    #regionTable tr:first-child td{
+      font-weight:600;color:var(--muted);font-size:11px;text-transform:uppercase;
+      padding:6px 4px;
+    }
+    #regionTable tr:not(:first-child){background:var(--card);border-bottom:1px solid var(--line)}
+    #regionTable tr:not(:first-child):active{background:#f1eee2}
+    #regionTable td{padding:10px 8px}
+    .pname{font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:var(--ink)}
+    .newempid{color:var(--muted)}
+
+    .badge,.badge1,.eabbadge,.smallbadge,.smalleabbadge{
+      display:inline-block;text-align:center;vertical-align:baseline;border-radius:50px;
+    }
+    .badge{width:24px;height:24px;line-height:24px;font-size:11px;color:#fff;background:var(--red)}
+    .badge1{width:24px;height:24px;line-height:24px;font-size:12px;color:#000;background:var(--gold)}
+    .eabbadge{width:24px;height:24px;line-height:24px;font-size:12px;color:#000;background:#f3c9d8}
+    .smallbadge{width:10px;height:10px;line-height:10px;color:green;background:var(--gold)}
+    .smalleabbadge{width:10px;height:10px;line-height:10px;color:green;background:#f3c9d8}
+
+    #topBtn{
+      display:none;position:fixed;bottom:20px;right:3px;z-index:99;border:none;outline:none;
+      width:45px;height:45px;border-radius:50%;cursor:pointer;font-size:18px;
+    }
+    .coin{
+      width:60px;margin-top:8px;right:3px;z-index:600;height:60px;position:fixed;
+      perspective:1000px;animation:flip 10s linear infinite;transform-style:preserve-3d;
+    }
+    .coin .side{position:absolute;width:100%;height:100%;backface-visibility:hidden}
+    .coin .back{transform:rotateY(180deg)}
+    @keyframes flip{0%{transform:rotateY(0)}100%{transform:rotateY(360deg)}}
+    @media (min-width:500px){
+      .coin{right:calc((100vw - 500px) / 2 + 3px)}
+      #topBtn{right:calc((100vw - 500px) / 2 + 3px)}
+    }
+
+    /* ===== Member details modal — new "membership passbook" look ===== */
+    .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background:rgba(0,0,0,.5)}
+    .modal-content{
+      background:var(--card);margin:24px auto 90px;max-width:calc(var(--maxw) - 40px);
+      border-radius:var(--radius);overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.3);
+      position:relative;
+    }
+    .close{
+      position:absolute;top:8px;right:10px;color:#fff;font-size:26px;font-weight:700;
+      cursor:pointer;z-index:2;width:32px;height:32px;line-height:32px;text-align:center;
+    }
+    .card-strip{
+      background:linear-gradient(135deg,var(--navy) 0%,var(--navy-dark) 100%);
+      position:relative;padding:20px 20px 44px;color:#fff;
+    }
+    .card-strip::after{
+      content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--gold);
+    }
+    .card-eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#cdd9ea;margin:0 0 2px}
+    .card-memberno{font-size:13px;color:#eaf0f8}
+    .photo-wrap{
+      position:absolute;left:20px;bottom:-34px;width:76px;height:76px;border-radius:50%;
+      background:#eef1f6;border:4px solid var(--card);box-shadow:0 3px 10px rgba(0,0,0,.25);
+      display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:34px;
+    }
+    .photo-wrap img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+    .card-body{padding:44px 18px 18px}
+    #nameHeader{
+      font-family:Poppins,sans-serif;font-weight:700;font-size:19px;margin:0 0 8px;
+      color:var(--ink);text-align:left;
+    }
+    .card-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+    .pill{
+      font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;
+      background:#eef1f6;color:var(--navy-dark);
+    }
+    .pill.fam{background:#fdf1d6;color:#7a5b06}
+    .pill.eab{background:#f3c9d8;color:#7a1030}
+    .card-actions{display:flex;gap:10px;margin-bottom:16px}
+    .act-btn{
+      flex:1;text-align:center;padding:10px 6px;border-radius:12px;font-size:13px;
+      font-weight:600;width:auto;box-shadow:none;margin:0;
+    }
+    .act-call{background:var(--navy);color:#fff}
+    .act-wa{background:#25D366;color:#fff}
+    .card-section{margin-bottom:16px}
+    .card-section-title{
+      font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+      font-weight:700;margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line);
+    }
+    .card-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px}
+    .card-row .k{color:var(--muted);flex:0 0 40%}
+    .card-row .v{flex:1;text-align:right;color:var(--ink)}
+    .card-row .v a{color:var(--navy);font-weight:600}
+    .card-section.fampen{background:#fdf7e6;border-radius:10px;padding:8px 10px;border:1px solid #f1e0a6}
+
+    button{background:var(--gold);color:#1a1200;border:0;width:170px;padding:9px;border-radius:15px;box-shadow:0 2px 0 #96760f;margin-left:5px}
   </style>
 </head>
 <body>
 
-<h2>Indian Bank Retirees' Association</h2>
-<span id='loader'></span>
+<div id="appHeader">
+  <div class="topbar">
+    <button class="hamburger" aria-label="Open regions menu" onclick="toggleDrawer()">&#9776;</button>
+    <h1>Indian Bank Retirees' Association</h1>
+  </div>
+  <span id="loader"></span>
+  <div class="subbar">
+    <h4 id="regionHeading">Members in </h4>
+    <input type="text" id="myInput" placeholder="Search here..." onkeyup="fiterName()">
+    <div id="datadate" style="display:none"></div>
+  </div>
+</div>
 
-<div id='datadate' style="top:72px;float:left; position:fixed; z-index:1000; display:none; color:blue; font-size:x-small; font-family: sans-serif;"></div>
-  <div class="coin">
+<div class="coin">
   <img class="side front" src="images/ibranewlogo.png">
   <img class="side back" src="images/ibranewlogo.png">
 </div>
-  
-<div id="regions">
-  <div style="background:powderblue;top:43px;position:fixed;width:100%;max-width:500px;z-index:999">
-    <ul >
-      <li onclick="selectedRegion('allmemb',0)" class="list active">All</li>
-      <li onclick="selectedRegion('VSP',1)" class="list">VSP</li>
-      <li onclick="selectedRegion('GOD',2)" class="list">GOD</li>
-      <li onclick="selectedRegion('VIJ',3)" class="list">VIJ</li>
-      <li onclick="selectedRegion('SEE',4)" class="list">SEEMA</li>
-      <li onclick="selectedRegion('HYD',5)" class="list">HYD</li>
-      <li onclick="selectedRegion('OTH',6)" class="list">OTH</li>
-      <li onclick="selectedRegion('EAB',7)" class="list">eAB</li>
-      <li onclick="selectedRegion('allMembNoWise',8)" class="list">SR No</li>
-    </ul>
-    <h4 id='regionHeading' align="center" style="margin:0">Memebrs in </h4>
-    <input type="text" id='myInput' placeholder="Search here..." onkeyup="fiterName()">
+
+<div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
+<nav id="drawer" class="drawer">
+  <div class="drawer-head">
+    <img src="images/ibranewlogo.png" alt="IBRA">
+    <button class="drawer-close" aria-label="Close menu" onclick="closeDrawer()">&times;</button>
   </div>
-  <p id='DataLoadedFrom'></p>  
-  <p id='paraInThisRegion'></p>
-  <div id="myModal" class="modal">
-    <div class="modal-content">
-      <span class="close">&times;</span>
-      <h4 align="center" id="nameHeader"></h4>
-      <p id="modalData"></p>
-      <div id='photo' style='margin-top:-266px;float:right'></div>
-      <div id='whatsapp'></div>
+  <ul id="regions" class="drawer-list">
+    <li onclick="selectedRegion('allmemb',0)" class="drawer-item active">All</li>
+    <li onclick="selectedRegion('VSP',1)" class="drawer-item">VSP</li>
+    <li onclick="selectedRegion('GOD',2)" class="drawer-item">GOD</li>
+    <li onclick="selectedRegion('VIJ',3)" class="drawer-item">VIJ</li>
+    <li onclick="selectedRegion('SEE',4)" class="drawer-item">SEEMA</li>
+    <li onclick="selectedRegion('HYD',5)" class="drawer-item">HYD</li>
+    <li onclick="selectedRegion('OTH',6)" class="drawer-item">OTH</li>
+    <li onclick="selectedRegion('EAB',7)" class="drawer-item">eAB</li>
+    <li onclick="selectedRegion('allMembNoWise',8)" class="drawer-item">SR No</li>
+  </ul>
+  <div class="drawer-footer">
+    Trouble reaching this page later? Bookmark our backup link:<br>
+    <a id="fallbackLink" href="#" target="_blank" rel="noopener">github pages backup</a>
+  </div>
+</nav>
+
+<p id="DataLoadedFrom"></p>
+<p id="paraInThisRegion"></p>
+
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <div class="card-strip">
+      <div class="card-eyebrow" id="cardEyebrow">Member</div>
+      <div class="card-memberno" id="cardMembNo"></div>
+      <div class="photo-wrap" id="photo">&#128100;</div>
+    </div>
+    <div class="card-body">
+      <h4 id="nameHeader"></h4>
+      <div class="card-badges" id="cardBadges"></div>
+      <div class="card-actions" id="cardActions"></div>
+      <div id="modalData"></div>
     </div>
   </div>
 </div>
-<div onclick="scrollToTop()" id="topBtn"><img style = "width:45px; "   src="images/topButton.png"></div>
+
+<div onclick="scrollToTop()" id="topBtn"><img style="width:45px" src="images/topButton.png"></div>
 
 <script>
 loader = document.getElementById("loader")
- window.onscroll=function(){document.getElementById("topBtn").style.display=document.documentElement.scrollTop>200?"block":"none";}
-  function scrollToTop(){document.documentElement.scrollTop=0;}
-  
-  //==== Utility: Date Formatting ====
+window.onscroll = function(){document.getElementById("topBtn").style.display = document.documentElement.scrollTop>200?"block":"none";}
+function scrollToTop(){document.documentElement.scrollTop=0;}
+
+//==== Fallback link (custom domain -> GitHub Pages) ====
+// If the GoDaddy-registered custom domain (see CNAME) lapses, DNS for that
+// domain stops resolving entirely, so no code running on this page can
+// redirect anyone away from it — that has to happen before the domain dies.
+// This link is the practical mitigation: it's always visible in the menu so
+// visitors can bookmark the permanent GitHub Pages URL in advance.
+// >>> Replace the placeholder below with your real GitHub Pages URL <<<
+const GITHUB_PAGES_FALLBACK_URL = "https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/";
+document.getElementById('fallbackLink').href = GITHUB_PAGES_FALLBACK_URL;
+
+//==== Hamburger drawer ====
+function toggleDrawer(){
+  document.getElementById('drawer').classList.toggle('open');
+  document.getElementById('drawerBackdrop').classList.toggle('open');
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerBackdrop').classList.remove('open');
+}
+
+//==== Utility: Date Formatting ====
 function formatDate(input) {
   const date = new Date(input);
   return isNaN(date) ? 'NA' : date.toLocaleString('en-GB');
@@ -111,7 +310,8 @@ const IDB_NAME = 'ibraDB';
 // NOTE: never lower this number again - a browser that has already opened
 // the DB at a higher version (e.g. during earlier testing) will throw
 // VersionError if a page later requests a lower version. Always bump forward.
-const IDB_VERSION = 3;
+// v4 adds the 'photos' object store used to cache member images locally.
+const IDB_VERSION = 4;
 let idbPromise;
 
 function openDB() {
@@ -129,13 +329,17 @@ function openDB() {
       if (!db.objectStoreNames.contains('meta')) {
         db.createObjectStore('meta');
       }
-      // Note: 'photos' and 'photoBlobs' stores may exist from earlier testing
-      // (photoid now lives directly on each addbook record instead).
-      // They're unused now and harmless to leave in place.
+      if (!db.objectStoreNames.contains('photos')) {
+        // keyPath 'id' holds the member's photoid (Google Drive file id).
+        // Re-caching happens naturally: when a member's photo changes, the
+        // source data gets a new photoid, so this is just a new key - no
+        // explicit invalidation step needed.
+        db.createObjectStore('photos', { keyPath: 'id' });
+      }
+      // Note: an earlier 'photoBlobs' store may exist from prior testing;
+      // unused now, harmless to leave in place.
     };
     req.onblocked = () => {
-      // Another tab still has an older-version connection open, so the
-      // upgrade can't proceed. Fail loudly instead of hanging forever.
       console.error('IndexedDB upgrade blocked - close other open tabs of this app and reload.');
       reject(new Error('IndexedDB upgrade blocked by another open tab'));
     };
@@ -156,8 +360,6 @@ async function idbPutAll(storeName, items) {
       try {
         store.put(item);
       } catch (err) {
-        // e.g. invalid key (NaN, undefined, etc) from a malformed source row -
-        // skip just this record instead of aborting every record after it
         skipped++;
         console.warn(`Skipped invalid record in "${storeName}":`, item, err);
       }
@@ -200,6 +402,97 @@ async function idbGetMeta(key) {
   });
 }
 
+async function idbPut(storeName, item) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).put(item);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbGet(storeName, key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function idbDelete(storeName, key) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(key);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function idbGetAllKeys(storeName) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).getAllKeys();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+//==== Photo cache (images stored in IndexedDB, keyed by photoid) ====
+const photoUrlCache = new Map(); // photoid -> already-created objectURL, this session
+
+async function getPhotoUrl(photoid) {
+  if (!photoid) return null;
+  if (photoUrlCache.has(photoid)) return photoUrlCache.get(photoid);
+
+  try {
+    const existing = await idbGet('photos', photoid);
+    if (existing && existing.blob) {
+      const url = URL.createObjectURL(existing.blob);
+      photoUrlCache.set(photoid, url);
+      return url;
+    }
+  } catch (err) {
+    console.warn('Photo cache read failed:', err);
+  }
+
+  const remoteUrl = `https://drive.google.com/thumbnail?id=${photoid}`;
+  try {
+    const res = await fetch(remoteUrl);
+    if (!res.ok) throw new Error('fetch failed: ' + res.status);
+    const blob = await res.blob();
+    await idbPut('photos', { id: photoid, blob, cachedAt: Date.now() });
+    const url = URL.createObjectURL(blob);
+    photoUrlCache.set(photoid, url);
+    return url;
+  } catch (err) {
+    // Caching failed (offline, or the endpoint blocked a cross-origin blob
+    // read) - fall back to loading it directly, same as before this change.
+    console.warn('Could not cache photo locally, using direct URL:', err);
+    return remoteUrl;
+  }
+}
+
+// Drop cached photos that no longer belong to any current member, so old
+// images don't accumulate forever in IndexedDB after a photoid changes.
+async function prunePhotoCache(currentAddBookData) {
+  try {
+    const liveIds = new Set(currentAddBookData.map(r => r.photoid).filter(Boolean));
+    const cachedKeys = await idbGetAllKeys('photos');
+    const stale = cachedKeys.filter(k => !liveIds.has(k));
+    for (const key of stale) {
+      await idbDelete('photos', key);
+    }
+    if (stale.length) console.log(`Pruned ${stale.length} stale cached photo(s)`);
+  } catch (err) {
+    console.warn('Photo cache prune skipped:', err);
+  }
+}
+
 //==== Fetch Data Functions ====
 async function fetchJson(url) {
   const res = await fetch(url, { cache: 'no-store' });
@@ -210,7 +503,6 @@ async function fetchLatestTimestamp() {
   const url = 'https://script.google.com/macros/s/AKfycbwo-TtPn3DAjHSPCXDwPFerT36QyfPPvUTi7uQEvcmjJso_aWpaKefUsgx_vpJOowHUgg/exec?sheetid=1MaB1PMP3ouY3Es5ziLgY7dhT3ZSb6oHRgecw3JiJfGw&sheetname=Sheet1';
   const res = await fetch(url, { cache: 'no-store' });
   const text = (await res.text()).trim();
-  // Handle [[timestamp]] case
   try {
     const parsed = JSON.parse(text);
     return Array.isArray(parsed) ? parsed.flat(Infinity)[0] : parsed;
@@ -233,27 +525,19 @@ async function fetchAddBookData() {
     console.warn(`addbook: dropped ${totalBefore - formatted.length} row(s) with invalid/blank id out of ${totalBefore}`);
   }
   await idbPutAll('addbook', formatted);
+  prunePhotoCache(formatted); // fire-and-forget housekeeping
   return formatted;
 }
 
-//==== Init with Cache-then-Network Strategy ====
-
-
-
 //==== Report Renderer ====
 function showReport(addBookData, source, serverTimestamp) {
-  document.getElementById("DataLoadedFrom").textContent =    `Report from: ${source} - ${formatDate(serverTimestamp-(5.5*60*60*1000))}`;
+  document.getElementById("DataLoadedFrom").textContent = `Report from: ${source} - ${formatDate(serverTimestamp-(5.5*60*60*1000))}`;
   processData(addBookData);
   console.log(activeMembers)
 }
 
-
 // One-time migration for users still on the old version, which stored the
-// timestamp in localStorage and the actual data in the Cache API. Runs once,
-// flagged in IndexedDB so it never repeats, and stops touching localStorage
-// or the old cache entirely from then on. Migrating the cached data (not just
-// the timestamp) means upgrading users see their existing data immediately
-// instead of a brief "waiting for server" empty state.
+// timestamp in localStorage and the actual data in the Cache API.
 const LEGACY_MIGRATION_FLAG = 'migratedFromLocalStorage_v1';
 const LEGACY_CACHE_NAME = 'addbook';
 
@@ -265,7 +549,6 @@ async function migrateLegacyStorage() {
     console.warn('Could not check migration flag, proceeding cautiously:', err);
   }
 
-  // 1. Migrate the timestamp from localStorage
   try {
     const legacyTimestamp = localStorage.getItem('data_updated_at');
     if (legacyTimestamp) {
@@ -277,35 +560,22 @@ async function migrateLegacyStorage() {
       localStorage.removeItem('data_updated_at');
     }
   } catch (err) {
-    // localStorage may be unavailable (private browsing etc) - safe to skip
     console.warn('Legacy localStorage migration skipped:', err);
   }
 
-  // 2. Migrate the actual records from the old Cache API storage, so
-  //    upgrading users get an instant report instead of an empty state
-  //    while waiting for the network fetch to complete. (Note: this old
-  //    cached data predates the photoid column, so photos won't show until
-  //    the next background refresh pulls the updated addbook rows - that's
-  //    expected and harmless.)
   try {
     const existingAddbook = await idbGetAll('addbook');
     if ((!existingAddbook || !existingAddbook.length) && 'caches' in window) {
       const cache = await caches.open(LEGACY_CACHE_NAME);
-
       const addbookResp = await cache.match('/custom/addbookdata.json');
       if (addbookResp && addbookResp.ok) {
         const oldAddbook = await addbookResp.json();
         if (Array.isArray(oldAddbook) && oldAddbook.length) {
-          // Ensure ids are normalized to Number for consistent IndexedDB keys,
-          // and drop any row with an invalid/blank id (would otherwise abort
-          // the whole batch when idbPutAll tries to write it)
           const normalized = oldAddbook.map(r => ({ ...r, id: Number(r.id) })).filter(r => !isNaN(r.id));
           await idbPutAll('addbook', normalized);
           console.log('Migrated', normalized.length, 'addbook records from Cache API to IndexedDB');
         }
       }
-
-      // Clean up the old cache now that its contents have been migrated
       await caches.delete(LEGACY_CACHE_NAME);
     }
   } catch (err) {
@@ -318,9 +588,7 @@ async function migrateLegacyStorage() {
 async function initReport() {
   await migrateLegacyStorage();
 
-  // 1. Try IndexedDB first (instant report)
   let addBookData = await idbGetAll('addbook');
-
   let localTimestamp = await idbGetMeta("data_updated_at");
 
   if (addBookData && addBookData.length && localTimestamp) {
@@ -329,43 +597,29 @@ async function initReport() {
     document.getElementById("DataLoadedFrom").textContent = "No cache, waiting for server...";
   }
 
-  // 2. In background, check server timestamp
   try {
     const serverTimestamp = await fetchLatestTimestamp();
     localTimestamp = await idbGetMeta("data_updated_at");
 
     if (!addBookData.length || localTimestamp != serverTimestamp) {
-
-      // 👉 Show modal ONLY if timestamps differ (and not first load)
-      if (localTimestamp && localTimestamp != serverTimestamp) {
-       // showUpdateModal("Latest Data Loaded❗ ");
-      }
-
-      // Fetch fresh if missing or outdated
       addBookData = await fetchAddBookData();
-
       await idbSetMeta("data_updated_at", serverTimestamp);
-
       showReport(addBookData, "Server (updated)", serverTimestamp);
       showUpdateModal("📢 Latest Data Loaded ");
-      //document.getElementById("loader").style.display="none"
     }
-    document.getElementById("loader").style.display="none"
-document.getElementById("datadate").style.display="block"
-document.getElementById("datadate").innerHTML= new Date().toLocaleString('en-GB', {timeZone: 'Asia/Kolkata'})
-    //showUpdateModal("Data Loaded❗ ❗ ");
-    
+    document.getElementById("loader").style.display = "none"
+    document.getElementById("datadate").style.display = "block"
+    document.getElementById("datadate").innerHTML = new Date().toLocaleString('en-GB', {timeZone: 'Asia/Kolkata'})
   } catch (err) {
     console.error("Background refresh failed", err);
+    document.getElementById("loader").style.display = "none"
   }
-  
 }
 initReport().catch(err => {
   console.error('initReport failed:', err);
   document.getElementById("loader").style.display = "none";
   document.getElementById("DataLoadedFrom").textContent = "Could not load data. Please reload the page.";
 });
-
 
 function processData(addBookData) {
   console.log(addBookData);
@@ -396,156 +650,192 @@ function processData(addBookData) {
   selectedRegion('allmemb', 0);
 }
 
-// A member has a photo if their addbook record has a non-empty photoid
 function isPhoto(photoid) {
   return photoid ? '<span>👨</span>' : '';
 }
 
-
 function selectedRegion(array, n) {
-                let tany = activeMembers.filter(a => a.area.includes(array)).map(a => ({
-                    id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB,
-                    srno: a.srno, mobile: a.mobile1, newempid: a.newempid, photoid: a.photoid
-                }));
-                let tarr = array === 'allmemb' ? allmemb : array === 'allMembNoWise' ? allMembNoWise : tany;
-                document.getElementById("myInput").value = "";
-                document.getElementById("myInput").style.display = "block";
-                document.documentElement.scrollTop = 0;
+  let tany = activeMembers.filter(a => a.area.includes(array)).map(a => ({
+    id: a.id, name: a.name, fampen: a.fampen, ibeab: a.IBorEAB,
+    srno: a.srno, mobile: a.mobile1, newempid: a.newempid, photoid: a.photoid
+  }));
+  let tarr = array === 'allmemb' ? allmemb : array === 'allMembNoWise' ? allMembNoWise : tany;
+  document.getElementById("myInput").value = "";
+  document.getElementById("myInput").style.display = "block";
+  document.documentElement.scrollTop = 0;
+  closeDrawer();
 
-                let famPensionersCount = tarr.filter(a => a.fampen.length > 0).length;
-                let eabcount = tarr.filter(a => a.ibeab === 'EAB').length;
-                let regions = ["All Members", "Visakhapatnam Area", "Godavari Area", "Vijayawada Area", "Seema Area", "Hyderabad Area", "Other States", "e Allahabad", "SR No Sorted"];
-                document.getElementById('regionHeading').innerHTML =  regions[n] +
-                    " <span class='badge'>" + tarr.length + "</span>" +
-                    "<span class='badge1'>" + famPensionersCount + "</span> " +
-                    "<span class='eabbadge'>" + eabcount + "</span>";
+  let famPensionersCount = tarr.filter(a => a.fampen.length > 0).length;
+  let eabcount = tarr.filter(a => a.ibeab === 'EAB').length;
+  let regions = ["All Members", "Visakhapatnam Area", "Godavari Area", "Vijayawada Area", "Seema Area", "Hyderabad Area", "Other States", "e Allahabad", "SR No Sorted"];
+  document.getElementById('regionHeading').innerHTML = regions[n] +
+    " <span class='badge'>" + tarr.length + "</span>" +
+    "<span class='badge1'>" + famPensionersCount + "</span> " +
+    "<span class='eabbadge'>" + eabcount + "</span>";
 
-                let inThisRegion = "<table id='regionTable' border='1'><tr><td>Name / Mobile / SR No/<span class='newempid'>NewEmpId</span> / Memb No /Photo </td></tr>";
-                tarr.forEach(a => {
-                    inThisRegion += `
-                        <tr align="center" onClick="nameclick(this.id)" id="${a.id}">
-                            <td class="${a.fampen.length > 0 ? "fam" : "ser"}">
-                                <span class="pname">${a.name}</span>
-                                ${a.fampen.length > 0 ? `<span class="smallbadge">&nbsp;</span><br>Family Pension of: ${a.fampen}` : ``}
-                                ${a.ibeab === 'EAB' ? `<span class="smalleabbadge">&nbsp;</span>` : ``}
-                                <br> Mobile: ${a.mobile} / SR: ${a.srno} /<span class=newempid>${a.newempid}</span> / Memb: ${a.id}  ${isPhoto(a.photoid)}
-                            </td>
-                        </tr>`;
-                });
-                inThisRegion += "</table><br><br><br>";
-                document.getElementById('paraInThisRegion').innerHTML = inThisRegion;
-                window.scrollTo(0, 0);
-            }
+  let inThisRegion = "<table id='regionTable' border='0'><tr><td>Name / Mobile / SR No/<span class='newempid'>NewEmpId</span> / Memb No /Photo </td></tr>";
+  tarr.forEach(a => {
+    inThisRegion += `
+      <tr align="left" onClick="nameclick(this.id)" id="${a.id}">
+        <td class="${a.fampen.length > 0 ? "fam" : "ser"}">
+          <span class="pname">${a.name}</span>
+          ${a.fampen.length > 0 ? `<span class="smallbadge">&nbsp;</span><br>Family Pension of: ${a.fampen}` : ``}
+          ${a.ibeab === 'EAB' ? `<span class="smalleabbadge">&nbsp;</span>` : ``}
+          <br> Mobile: ${a.mobile} / SR: ${a.srno} /<span class=newempid>${a.newempid}</span> / Memb: ${a.id}  ${isPhoto(a.photoid)}
+        </td>
+      </tr>`;
+  });
+  inThisRegion += "</table>";
+  document.getElementById('paraInThisRegion').innerHTML = inThisRegion;
+  window.scrollTo(0, 0);
+}
 
-            let modal = document.getElementById("myModal");
-            let span = document.getElementsByClassName("close")[0];
+// active state for drawer items
+document.addEventListener('DOMContentLoaded', () => {
+  var btnContainer = document.getElementById("regions");
+  if (btnContainer) {
+    var btns = btnContainer.getElementsByClassName("drawer-item");
+    for (let i = 0; i < btns.length; i++) {
+      btns[i].addEventListener("click", function () {
+        let current = document.getElementsByClassName("active");
+        if (current[0]) current[0].className = current[0].className.replace(" active", "");
+        this.className += " active";
+      });
+    }
+  }
+});
 
-            window.onclick = function(event) {if (event.target == modal) {modal.style.display = "none";}}
-            window.addEventListener('touchstart', function(event) {if (event.target == modal) {modal.style.display = "none";}});
-            window.addEventListener('touchend', function(event) {if (event.target == modal) {modal.style.display = "none";}});
-            function ddmmyy(input) {
-                const date = new Date(input);
-                return isNaN(date.getTime()) ? 'NA' : date.toLocaleString("en-GB", { timeZone: "Asia/Kolkata" }).substring(0, 10);
-            }
+let modal = document.getElementById("myModal");
+let span = document.getElementsByClassName("close")[0];
 
-            span.onclick = function() {modal.style.display = "none";}
+window.onclick = function(event) {if (event.target == modal) {modal.style.display = "none";}}
+window.addEventListener('touchstart', function(event) {if (event.target == modal) {modal.style.display = "none";}});
+window.addEventListener('touchend', function(event) {if (event.target == modal) {modal.style.display = "none";}});
 
-            function nameclick(membershipNo) {
-                let toDisplay = "<table border=1><tr>";
-                document.getElementById("myInput").value = "";
-                let membno = membershipNo * 1;
-                let membData = activeMembers.filter(a => a.id === membno);
-                memphoto = membData[0].photoid ? `<img  src='https://drive.google.com/thumbnail?id=${membData[0].photoid}' height=100 width=100'>` :""
-                let dob = membData[0].dob;
-                let doj = membData[0].doj;
-                let dor = membData[0].dor;
-                let spname = membData[0].spname;
-                let ptype = membData[0].fampen !== "" ? "Family Pension" : "Service Pension";
-                toDisplay += `<tr><td colspan=2><b>Membership No</b> ${membData[0].id}</td></tr>`;
-                toDisplay += `<tr><td colspan='2'><b>Address: </b><br>${membData[0].add1}<br>`;
-                if (membData[0].add2.length > 0) toDisplay += `${membData[0].add2}<br>`;
-                if (membData[0].add3.length > 0) toDisplay += `${membData[0].add3}<br>`;
-                if (membData[0].place.length > 0) toDisplay += `${membData[0].place}  ${membData[0].pincode}<br>`;
-                if (membData[0].district.length > 0) toDisplay += `${membData[0].district} District <br>`;
-                toDisplay += `<tr><td colspan=2><b>Phones: </b>`;
-                if (membData[0].fixed.length > 0) toDisplay += `${membData[0].fixed} / `;
-                if (membData[0].mobile1 > 0) toDisplay += `<a href=tel:${membData[0].mobile1}><mark style='background:red;color:white'>${membData[0].mobile1}</mark></a>`;
-                if (membData[0].mobile2 > 0) toDisplay += ` / ${membData[0].mobile2}`;
-                toDisplay += `<tr><td colspan=2><b>Email: </b>${membData[0].email}</td></tr>`;
-                toDisplay += `<tr><td colspan=2><b>S R No: </b>${membData[0].srno} /  <b>New Emp Id: </b>${membData[0].newempid}</td></tr>`;
-                toDisplay += `<tr><td colspan=2><b>Application Scanned: </b>${membData[0].scanned}</td></tr>`;
-                toDisplay += `<tr><td colspan=2><b>Pension Br: </b>${membData[0].pensionbr}</td></tr>`;
-                if (membData[0].fampen !== "") {toDisplay += `<tr bgcolor=yellow><td colspan=2><b>Family Pension of :</b> ${membData[0].fampen}<br> DOD of Ser. Pensioner: ${membData[0].dod}</td></tr>`;}
-                toDisplay += `<tr><td colspan=2><b>Pension Acc: </b> ${membData[0].sbac}</td></tr>`;
-                let whichBank = membData[0].IBorEAB === 'IB' ? "Indian Bank" : "e Allahabad Bank";
-                toDisplay += `<tr><td colspan=2><b>Retired from : </b> ${whichBank} / <b>Pension Type : </b> ${ptype}</td></tr>`;
-                toDisplay += `<tr><td colspan=2><b>Region : </b> ${membData[0].area.substr(0, 3)}</td></tr>`;
-                toDisplay += `<tr><td colspan=2><b>DOB : </b> ${dob} / <b>DOJ : </b> ${doj} / <b>DOR : </b> ${dor}</td></tr>`;
-                toDisplay += `<tr><td colspan=2><b>Spouse Name : </b> ${spname}</td></tr>`;
-                document.getElementById("modalData").innerHTML = toDisplay + "</table>";
-                document.getElementById("nameHeader").innerHTML = membData[0].name;
-                modal.style.display = "block";
-                document.getElementById('photo').innerHTML = memphoto;
-                if (isMobileDevice) {
-                    let msg = `Hi ${membData[0].name} 🙏`;
-                msg = encodeURIComponent(msg);
-                document.getElementById('whatsapp').innerHTML = `
-                <a href="https://wa.me/91${membData[0].mobile1}?text=${msg}" target="_blank">
-                <img alt="Chat on WhatsApp" src="images/WhatsApp.jpg" height="50px" />
-                </a>`;
-                 }
-              
-                 }
+function ddmmyy(input) {
+  const date = new Date(input);
+  return isNaN(date.getTime()) ? 'NA' : date.toLocaleString("en-GB", { timeZone: "Asia/Kolkata" }).substring(0, 10);
+}
+
+span.onclick = function() {modal.style.display = "none";}
+
+let details = navigator.userAgent;
+let regexp = /android|iphone|kindle|ipad/i;
+let isMobileDevice = regexp.test(details);
+
+//==== New member details card ====
+async function nameclick(membershipNo) {
+  document.getElementById("myInput").value = "";
+  let membno = membershipNo * 1;
+  let membData = activeMembers.filter(a => a.id === membno)[0];
+  if (!membData) return;
+
+  let ptype = membData.fampen !== "" ? "Family Pension" : "Service Pension";
+  let whichBank = membData.IBorEAB === 'IB' ? "Indian Bank" : "e Allahabad Bank";
+
+  document.getElementById("cardEyebrow").textContent = whichBank + " · " + ptype;
+  document.getElementById("cardMembNo").textContent = "Membership No. " + membData.id;
+  document.getElementById("nameHeader").textContent = membData.name;
+
+  // Photo: show placeholder immediately, swap in once resolved from IndexedDB / network
+  const photoEl = document.getElementById("photo");
+  photoEl.innerHTML = "&#128100;";
+  if (membData.photoid) {
+    getPhotoUrl(membData.photoid).then(url => {
+      if (url) photoEl.innerHTML = `<img src="${url}" alt="${membData.name}">`;
+    });
+  }
+
+  // Badges
+  let badges = "";
+  badges += `<span class="pill">${membData.area.substr(0,3)} Region</span>`;
+  if (membData.fampen) badges += `<span class="pill fam">Family Pension</span>`;
+  if (membData.IBorEAB === 'EAB') badges += `<span class="pill eab">eAB</span>`;
+  document.getElementById("cardBadges").innerHTML = badges;
+
+  // Actions (call / whatsapp)
+  let actions = "";
+  if (membData.mobile1) actions += `<a class="act-btn act-call" href="tel:${membData.mobile1}">&#128222; Call</a>`;
+  if (isMobileDevice && membData.mobile1) {
+    let msg = encodeURIComponent(`Hi ${membData.name} 🙏`);
+    actions += `<a class="act-btn act-wa" href="https://wa.me/91${membData.mobile1}?text=${msg}" target="_blank">WhatsApp</a>`;
+  }
+  document.getElementById("cardActions").innerHTML = actions;
+
+  // Detail sections
+  let addressLines = [membData.add1];
+  if (membData.add2.length > 0) addressLines.push(membData.add2);
+  if (membData.add3.length > 0) addressLines.push(membData.add3);
+  if (membData.place.length > 0) addressLines.push(`${membData.place} ${membData.pincode}`);
+  if (membData.district.length > 0) addressLines.push(`${membData.district} District`);
+
+  let html = "";
+
+  html += `<div class="card-section"><div class="card-section-title">Address</div>
+    <div class="card-row"><span class="v" style="text-align:left;flex:1">${addressLines.join('<br>')}</span></div></div>`;
+
+  html += `<div class="card-section"><div class="card-section-title">Contact</div>`;
+  if (membData.fixed.length > 0) html += `<div class="card-row"><span class="k">Landline</span><span class="v">${membData.fixed}</span></div>`;
+  if (membData.mobile1 > 0) html += `<div class="card-row"><span class="k">Mobile</span><span class="v"><a href="tel:${membData.mobile1}">${membData.mobile1}</a></span></div>`;
+  if (membData.mobile2 > 0) html += `<div class="card-row"><span class="k">Alt. Mobile</span><span class="v">${membData.mobile2}</span></div>`;
+  if (membData.email) html += `<div class="card-row"><span class="k">Email</span><span class="v">${membData.email}</span></div>`;
+  html += `</div>`;
+
+  html += `<div class="card-section"><div class="card-section-title">Employment &amp; Pension</div>
+    <div class="card-row"><span class="k">S R No</span><span class="v">${membData.srno}</span></div>
+    <div class="card-row"><span class="k">New Emp Id</span><span class="v">${membData.newempid}</span></div>
+    <div class="card-row"><span class="k">Pension Br</span><span class="v">${membData.pensionbr}</span></div>
+    <div class="card-row"><span class="k">Pension Acc</span><span class="v">${membData.sbac}</span></div>
+    <div class="card-row"><span class="k">Application Scanned</span><span class="v">${membData.scanned}</span></div>
+    <div class="card-row"><span class="k">DOB</span><span class="v">${membData.dob}</span></div>
+    <div class="card-row"><span class="k">DOJ</span><span class="v">${membData.doj}</span></div>
+    <div class="card-row"><span class="k">DOR</span><span class="v">${membData.dor}</span></div>
+    <div class="card-row"><span class="k">Spouse Name</span><span class="v">${membData.spname}</span></div>
+  </div>`;
+
+  if (membData.fampen !== "") {
+    html += `<div class="card-section fampen"><div class="card-section-title">Family Pension</div>
+      <div class="card-row"><span class="k">Of</span><span class="v">${membData.fampen}</span></div>
+      <div class="card-row"><span class="k">DOD of Ser. Pensioner</span><span class="v">${membData.dod}</span></div>
+    </div>`;
+  }
+
+  document.getElementById("modalData").innerHTML = html;
+  modal.style.display = "block";
+}
 
 function fiterName() {
-                let input = document.getElementById("myInput");
-                let filter = input.value.toUpperCase().replaceAll(" ", "");
-                let table = document.getElementById("regionTable");
-                let tr = table.getElementsByTagName("tr");
-                for (let i = 0; i < tr.length; i++) {
-                    let td = tr[i].getElementsByTagName("td")[0];
-                    if (td) {
-                        let txtValue = td.textContent || td.innerText;
-                        if (txtValue.toUpperCase().replaceAll(" ", "").indexOf(filter) > -1) {
-                            tr[i].style.display = "";
-                        } else {
-                            tr[i].style.display = "none";
-                        }
-                    }
-                }
-            }
+  let input = document.getElementById("myInput");
+  let filter = input.value.toUpperCase().replaceAll(" ", "");
+  let table = document.getElementById("regionTable");
+  let tr = table.getElementsByTagName("tr");
+  for (let i = 0; i < tr.length; i++) {
+    let td = tr[i].getElementsByTagName("td")[0];
+    if (td) {
+      let txtValue = td.textContent || td.innerText;
+      if (txtValue.toUpperCase().replaceAll(" ", "").indexOf(filter) > -1) {
+        tr[i].style.display = "";
+      } else {
+        tr[i].style.display = "none";
+      }
+    }
+  }
+}
 
-            var btnContainer = document.getElementById("regions");
-            if (btnContainer) {
-                var btns = btnContainer.getElementsByClassName("list");
-                for (let i = 0; i < btns.length; i++) {
-                    btns[i].addEventListener("click", function () {
-                        let current = document.getElementsByClassName("active");
-                        if (current[0]) current[0].className = current[0].className.replace(" active", "");
-                        this.className += " active";
-                    });
-                }
-            }
-         	let details = navigator.userAgent;
-            let regexp = /android|iphone|kindle|ipad/i;
-            let isMobileDevice = regexp.test(details);
-            
-            function showUpdateModal(message) {
-  const modal = document.getElementById("myModal");
+function showUpdateModal(message) {
   const header = document.getElementById("nameHeader");
   const content = document.getElementById("modalData");
 
-  header.innerHTML = "<span style='font-size:100px;'>&#9995;</span>";
-  content.innerHTML = `<p style="text-align:center;font-size:18px;">${message}</p>`;
+  document.getElementById("cardEyebrow").textContent = "";
+  document.getElementById("cardMembNo").textContent = "";
+  document.getElementById("cardBadges").innerHTML = "";
+  document.getElementById("cardActions").innerHTML = "";
+  header.innerHTML = "<span style='font-size:60px;display:block;text-align:center'>&#9995;</span>";
+  content.innerHTML = `<p style="text-align:center;font-size:16px;">${message}</p>`;
   document.getElementById('photo').innerHTML = "";
-  document.getElementById('whatsapp').innerHTML = "";
 
   modal.style.display = "block";
-
-  // Auto close after 3 seconds
-  setTimeout(() => {
-    modal.style.display = "none";
-  }, 3000);
+  setTimeout(() => { modal.style.display = "none"; }, 3000);
 }
 </script>
 </body>

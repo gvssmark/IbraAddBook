@@ -1,4 +1,4 @@
-const APP_CACHE = "app-shell-v1";
+const APP_CACHE = "app-shell-v2";
 
 // List of core files for offline availability
 const APP_ASSETS = [
@@ -7,6 +7,8 @@ const APP_ASSETS = [
   "sw.js",
   "images/ibra192.png",
   "images/ibra512.png",
+  "images/ibranewlogo.png",
+  "images/topButton.png",
 ];
 
 // Install: pre-cache the app shell
@@ -60,7 +62,3 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
-
-
-
-
