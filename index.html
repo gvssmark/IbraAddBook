@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -72,7 +73,7 @@
       background:#fff;padding:0 16px;font-size:15px;outline:0;display:block;
     }
     #myInput:focus{border-color:var(--gold)}
-    #datadate{font-size:11px;color:#dfe7f2;text-align:center;padding:2px 0 0}
+    #datadate{font-size:11px;color:#dfe7f2;text-align:center;padding:2px 0 0; }
     #loader{
       display:block;text-align:center;font-size:12px;font-weight:700;
       background:var(--navy-dark);color:#fff;padding:3px 0;
@@ -80,7 +81,7 @@
     }
     #loader::before{content:"Updating Data";}
     @keyframes flashText{0%,100%{color:#fff}50%{color:var(--gold)}}
-    #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0}
+    #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0; display:none;}
 
     /* ---- Hamburger drawer (constrained to the app's own column, even
        on desktop, so the overall footprint never changes) ---- */
@@ -122,7 +123,7 @@
     #regionTable tr:not(:first-child){background:var(--card);border-bottom:1px solid var(--line)}
     #regionTable tr:not(:first-child):active{background:#f1eee2}
     #regionTable td{padding:10px 8px}
-    .pname{font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:var(--ink)}
+    .pname{font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:red; }
     .newempid{color:var(--muted)}
 
     .badge,.badge1,.eabbadge,.smallbadge,.smalleabbadge{
@@ -286,7 +287,7 @@ function scrollToTop(){document.documentElement.scrollTop=0;}
 // This link is the practical mitigation: it's always visible in the menu so
 // visitors can bookmark the permanent GitHub Pages URL in advance.
 // >>> Replace the placeholder below with your real GitHub Pages URL <<<
-const GITHUB_PAGES_FALLBACK_URL = "https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/";
+const GITHUB_PAGES_FALLBACK_URL = "https://gvssmark.github.io/IbraAddBook/";
 document.getElementById('fallbackLink').href = GITHUB_PAGES_FALLBACK_URL;
 
 //==== Hamburger drawer ====
@@ -651,7 +652,7 @@ function processData(addBookData) {
 }
 
 function isPhoto(photoid) {
-  return photoid ? '<span>👨</span>' : '';
+  return photoid ? '<span style="font-size:small;">👨</span>' : '';
 }
 
 function selectedRegion(array, n) {
@@ -681,7 +682,7 @@ function selectedRegion(array, n) {
           <span class="pname">${a.name}</span>
           ${a.fampen.length > 0 ? `<span class="smallbadge">&nbsp;</span><br>Family Pension of: ${a.fampen}` : ``}
           ${a.ibeab === 'EAB' ? `<span class="smalleabbadge">&nbsp;</span>` : ``}
-          <br> Mobile: ${a.mobile} / SR: ${a.srno} /<span class=newempid>${a.newempid}</span> / Memb: ${a.id}  ${isPhoto(a.photoid)}
+          <br><span style='font-size:small; color:grey;'> Mobile: ${a.mobile} / SR: ${a.srno} / ${a.newempid} / Memb: ${a.id}  ${isPhoto(a.photoid)} </span>
         </td>
       </tr>`;
   });
