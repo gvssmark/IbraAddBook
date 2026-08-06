@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -10,6 +9,10 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#003B73" />
   <link rel="apple-touch-icon" href="images/ibra512.png">
+  <!-- iOS "Add to Home Screen" standalone mode -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="IBRA">
   <style>
     /* ===== Design tokens =====
        Institutional navy + brass passbook-stamp gold, echoing a bank
@@ -32,6 +35,19 @@
       --header-h:56px;
     }
     *{box-sizing:border-box}
+    /* iOS (especially in "Add to Home Screen" standalone mode, which has no
+       Safari chrome to hide the effect) reveals whatever is behind the page
+       when you pull past the top/bottom - normally stark white. Locking
+       html/body from scrolling at all, and doing the real scrolling inside
+       #scrollArea instead, removes the rubber-band bounce entirely rather
+       than just hiding it. --navy-dark as the html background is a backstop
+       in case any sliver ever shows through on an edge case. */
+    html{
+      height:100%;
+      background:var(--navy-dark);
+      overflow:hidden;
+      overscroll-behavior:none;
+    }
     body{
       background:var(--cream);
       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
@@ -40,8 +56,17 @@
       margin:0 auto;
       width:100%;
       max-width:var(--maxw);
+      height:100%;
       position:relative;
+      overflow:hidden;
+      overscroll-behavior:none;
       -webkit-tap-highlight-color:transparent;
+    }
+    #scrollArea{
+      height:100%;
+      overflow-y:auto;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior-y:contain;
     }
     a{text-decoration:none;color:inherit}
     img{border-radius:50%}
@@ -73,7 +98,7 @@
       background:#fff;padding:0 16px;font-size:15px;outline:0;display:block;
     }
     #myInput:focus{border-color:var(--gold)}
-    #datadate{font-size:11px;color:#dfe7f2;text-align:center;padding:2px 0 0; }
+    #datadate{font-size:11px;color:#dfe7f2;text-align:center;padding:2px 0 0}
     #loader{
       display:block;text-align:center;font-size:12px;font-weight:700;
       background:var(--navy-dark);color:#fff;padding:3px 0;
@@ -81,7 +106,7 @@
     }
     #loader::before{content:"Updating Data";}
     @keyframes flashText{0%,100%{color:#fff}50%{color:var(--gold)}}
-    #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0; display:none;}
+    #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0}
 
     /* ---- Hamburger drawer (constrained to the app's own column, even
        on desktop, so the overall footprint never changes) ---- */
@@ -123,7 +148,7 @@
     #regionTable tr:not(:first-child){background:var(--card);border-bottom:1px solid var(--line)}
     #regionTable tr:not(:first-child):active{background:#f1eee2}
     #regionTable td{padding:10px 8px}
-    .pname{font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:red; }
+    .pname{font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:var(--ink)}
     .newempid{color:var(--muted)}
 
     .badge,.badge1,.eabbadge,.smallbadge,.smalleabbadge{
@@ -152,7 +177,7 @@
     }
 
     /* ===== Member details modal — new "membership passbook" look ===== */
-    .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;background:rgba(0,0,0,.5)}
+    .modal{display:none;position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;overflow:auto;overscroll-behavior:contain;background:rgba(0,0,0,.5)}
     .modal-content{
       background:var(--card);margin:24px auto 90px;max-width:calc(var(--maxw) - 40px);
       border-radius:var(--radius);overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.3);
@@ -167,7 +192,7 @@
       position:relative;padding:20px 20px 44px;color:#fff;
     }
     .card-strip::after{
-      content:"";position:absolute;left:0;right:0;bottom:0;height:4px;;
+      content:"";position:absolute;left:0;right:0;bottom:0;height:4px;background:var(--gold);
     }
     .card-eyebrow{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#cdd9ea;margin:0 0 2px}
     .card-memberno{font-size:13px;color:#eaf0f8}
@@ -198,7 +223,7 @@
     .act-wa{background:#25D366;color:#fff}
     .card-section{margin-bottom:16px}
     .card-section-title{
-      font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:red;
+      font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
       font-weight:700;margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line);
     }
     .card-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px}
@@ -211,13 +236,9 @@
   </style>
 </head>
 <body>
+<div id="scrollArea">
 
 <div id="appHeader">
-<div class="coin">
-  <img class="side front" src="images/ibranewlogo.png">
-  <img class="side back" src="images/ibranewlogo.png">
-</div>
-
   <div class="topbar">
     <button class="hamburger" aria-label="Open regions menu" onclick="toggleDrawer()">&#9776;</button>
     <h1>Indian Bank Retirees' Association</h1>
@@ -230,6 +251,10 @@
   </div>
 </div>
 
+<div class="coin">
+  <img class="side front" src="images/ibranewlogo.png">
+  <img class="side back" src="images/ibranewlogo.png">
+</div>
 
 <div id="drawerBackdrop" class="drawer-backdrop" onclick="closeDrawer()"></div>
 <nav id="drawer" class="drawer">
@@ -276,10 +301,13 @@
 
 <div onclick="scrollToTop()" id="topBtn"><img style="width:45px" src="images/topButton.png"></div>
 
+</div><!-- /#scrollArea -->
+
 <script>
 loader = document.getElementById("loader")
-window.onscroll = function(){document.getElementById("topBtn").style.display = document.documentElement.scrollTop>200?"block":"none";}
-function scrollToTop(){document.documentElement.scrollTop=0;}
+const scrollArea = document.getElementById("scrollArea");
+scrollArea.addEventListener('scroll', function(){document.getElementById("topBtn").style.display = scrollArea.scrollTop>200?"block":"none";});
+function scrollToTop(){scrollArea.scrollTop=0;}
 
 //==== Fallback link (custom domain -> GitHub Pages) ====
 // If the GoDaddy-registered custom domain (see CNAME) lapses, DNS for that
@@ -288,7 +316,7 @@ function scrollToTop(){document.documentElement.scrollTop=0;}
 // This link is the practical mitigation: it's always visible in the menu so
 // visitors can bookmark the permanent GitHub Pages URL in advance.
 // >>> Replace the placeholder below with your real GitHub Pages URL <<<
-const GITHUB_PAGES_FALLBACK_URL = "https://gvssmark.github.io/IbraAddBook/";
+const GITHUB_PAGES_FALLBACK_URL = "https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/";
 document.getElementById('fallbackLink').href = GITHUB_PAGES_FALLBACK_URL;
 
 //==== Hamburger drawer ====
@@ -653,7 +681,7 @@ function processData(addBookData) {
 }
 
 function isPhoto(photoid) {
-  return photoid ? '<span style="font-size:small;">👨</span>' : '';
+  return photoid ? '<span>👨</span>' : '';
 }
 
 function selectedRegion(array, n) {
@@ -664,7 +692,7 @@ function selectedRegion(array, n) {
   let tarr = array === 'allmemb' ? allmemb : array === 'allMembNoWise' ? allMembNoWise : tany;
   document.getElementById("myInput").value = "";
   document.getElementById("myInput").style.display = "block";
-  document.documentElement.scrollTop = 0;
+  scrollArea.scrollTop = 0;
   closeDrawer();
 
   let famPensionersCount = tarr.filter(a => a.fampen.length > 0).length;
@@ -683,13 +711,13 @@ function selectedRegion(array, n) {
           <span class="pname">${a.name}</span>
           ${a.fampen.length > 0 ? `<span class="smallbadge">&nbsp;</span><br>Family Pension of: ${a.fampen}` : ``}
           ${a.ibeab === 'EAB' ? `<span class="smalleabbadge">&nbsp;</span>` : ``}
-          <br><span style='font-size:small; color:grey;'> Mobile: ${a.mobile} / SR: ${a.srno} / ${a.newempid} / Memb: ${a.id}  ${isPhoto(a.photoid)} </span>
+          <br> Mobile: ${a.mobile} / SR: ${a.srno} /<span class=newempid>${a.newempid}</span> / Memb: ${a.id}  ${isPhoto(a.photoid)}
         </td>
       </tr>`;
   });
   inThisRegion += "</table>";
   document.getElementById('paraInThisRegion').innerHTML = inThisRegion;
-  window.scrollTo(0, 0);
+  scrollArea.scrollTop = 0;
 }
 
 // active state for drawer items
