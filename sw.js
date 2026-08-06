@@ -1,6 +1,8 @@
 
 
 
+
+
 const APP_CACHE = "app-shell-v4";
 
 // List of core files for offline availability
