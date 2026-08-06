@@ -1,4 +1,4 @@
-const APP_CACHE = "app-shell-v3";
+const APP_CACHE = "app-shell-v4";
 
 // List of core files for offline availability
 const APP_ASSETS = [
@@ -62,5 +62,3 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
-
-

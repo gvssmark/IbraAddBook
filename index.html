@@ -32,7 +32,7 @@
       --line:#e6e1d3;
       --maxw:500px;
       --radius:16px;
-      --header-h:56px;
+      --header-h:120px;
     }
     *{box-sizing:border-box}
     /* iOS (especially in "Add to Home Screen" standalone mode, which has no
@@ -40,8 +40,12 @@
        when you pull past the top/bottom - normally stark white. Locking
        html/body from scrolling at all, and doing the real scrolling inside
        #scrollArea instead, removes the rubber-band bounce entirely rather
-       than just hiding it. --navy-dark as the html background is a backstop
-       in case any sliver ever shows through on an edge case. */
+       than just hiding it. The header is a position:fixed sibling of
+       #scrollArea (not sticky inside it) - a sticky element inside a
+       bouncing container detaches from the top during iOS's elastic
+       overscroll, which is exactly what caused the earlier "floating icon"
+       glitch. --navy-dark as the html background is a backstop in case any
+       sliver ever shows through on an edge case. */
     html{
       height:100%;
       background:var(--navy-dark);
@@ -67,12 +71,16 @@
       overflow-y:auto;
       -webkit-overflow-scrolling:touch;
       overscroll-behavior-y:contain;
+      padding-top:var(--header-h,141px);
     }
     a{text-decoration:none;color:inherit}
     img{border-radius:50%}
 
     /* ---- Sticky header block (replaces old fixed+magic-margin layout) ---- */
-    #appHeader{position:sticky;top:0;z-index:500;width:100%}
+    #appHeader{position:fixed;top:0;left:0;width:100%;z-index:500}
+    @media (min-width:500px){
+      #appHeader{left:calc((100vw - var(--maxw)) / 2);width:var(--maxw)}
+    }
     .topbar{
       display:flex;align-items:center;gap:10px;
       background:var(--navy);color:#fff;
@@ -106,7 +114,7 @@
     }
     #loader::before{content:"Updating Data";}
     @keyframes flashText{0%,100%{color:#fff}50%{color:var(--gold)}}
-    #DataLoadedFrom{text-align:center;font-size:11px; display:none; color:var(--muted);margin:6px 0 0}
+    #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0}
 
     /* ---- Hamburger drawer (constrained to the app's own column, even
        on desktop, so the overall footprint never changes) ---- */
@@ -236,8 +244,6 @@
   </style>
 </head>
 <body>
-<div id="scrollArea">
-
 <div id="appHeader">
   <div class="topbar">
     <button class="hamburger" aria-label="Open regions menu" onclick="toggleDrawer()">&#9776;</button>
@@ -250,6 +256,11 @@
     <div id="datadate" style="display:none"></div>
   </div>
 </div>
+
+<div id="scrollArea">
+<p id="DataLoadedFrom"></p>
+<p id="paraInThisRegion"></p>
+</div><!-- /#scrollArea -->
 
 <div class="coin">
   <img class="side front" src="images/ibranewlogo.png">
@@ -279,9 +290,6 @@
   </div>
 </nav>
 
-<p id="DataLoadedFrom"></p>
-<p id="paraInThisRegion"></p>
-
 <div id="myModal" class="modal">
   <div class="modal-content">
     <span class="close">&times;</span>
@@ -299,15 +307,47 @@
   </div>
 </div>
 
-<div onclick="scrollToTop()" id="topBtn"><img style="width:45px" src="images/topButton.png"></div>
 
-</div><!-- /#scrollArea -->
+<div onclick="scrollToTop()" id="topBtn"><img style="width:45px" src="images/topButton.png"></div>
 
 <script>
 loader = document.getElementById("loader")
 const scrollArea = document.getElementById("scrollArea");
 scrollArea.addEventListener('scroll', function(){document.getElementById("topBtn").style.display = scrollArea.scrollTop>200?"block":"none";});
 function scrollToTop(){scrollArea.scrollTop=0;}
+
+//==== Keep #scrollArea's top padding in sync with the real (fixed) header
+// height, since it can wrap to two lines on narrow phones. ====
+const appHeaderEl = document.getElementById('appHeader');
+function syncHeaderHeight(){
+  document.documentElement.style.setProperty('--header-h', appHeaderEl.offsetHeight + 'px');
+}
+syncHeaderHeight();
+if (window.ResizeObserver) {
+  new ResizeObserver(syncHeaderHeight).observe(appHeaderEl);
+} else {
+  window.addEventListener('resize', syncHeaderHeight);
+}
+
+//==== Extra safety net against the iOS elastic "rubber-band" bounce.
+// overscroll-behavior isn't consistently honoured on iOS, especially in
+// standalone (home-screen) mode, so this directly cancels the pull gesture
+// once a scrollable element has reached its top/bottom edge. ====
+function preventOverscroll(el){
+  let startY = 0;
+  el.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - startY;
+    const atTop = el.scrollTop <= 0;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+    if ((atTop && dy > 0) || (atBottom && dy < 0)) {
+      e.preventDefault();
+    }
+  }, { passive: false });
+}
+preventOverscroll(scrollArea);
+preventOverscroll(document.getElementById('myModal'));
+preventOverscroll(document.getElementById('drawer'));
 
 //==== Fallback link (custom domain -> GitHub Pages) ====
 // If the GoDaddy-registered custom domain (see CNAME) lapses, DNS for that
