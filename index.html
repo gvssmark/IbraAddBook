@@ -106,7 +106,7 @@
     }
     #loader::before{content:"Updating Data";}
     @keyframes flashText{0%,100%{color:#fff}50%{color:var(--gold)}}
-    #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0}
+    #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0; display:none;}
 
     /* ---- Hamburger drawer (constrained to the app's own column, even
        on desktop, so the overall footprint never changes) ---- */
@@ -148,8 +148,8 @@
     #regionTable tr:not(:first-child){background:var(--card);border-bottom:1px solid var(--line)}
     #regionTable tr:not(:first-child):active{background:#f1eee2}
     #regionTable td{padding:10px 8px}
-    .pname{font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:var(--ink)}
-    .newempid{color:var(--muted)}
+    .pname{font-family:Poppins,sans-serif;font-weight:600;font-size:16px;color:red}
+    .newempid{color:grey; font-size:small}
 
     .badge,.badge1,.eabbadge,.smallbadge,.smalleabbadge{
       display:inline-block;text-align:center;vertical-align:baseline;border-radius:50px;
@@ -223,7 +223,7 @@
     .act-wa{background:#25D366;color:#fff}
     .card-section{margin-bottom:16px}
     .card-section-title{
-      font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+      font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:red;
       font-weight:700;margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line);
     }
     .card-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px}
@@ -711,7 +711,7 @@ function selectedRegion(array, n) {
           <span class="pname">${a.name}</span>
           ${a.fampen.length > 0 ? `<span class="smallbadge">&nbsp;</span><br>Family Pension of: ${a.fampen}` : ``}
           ${a.ibeab === 'EAB' ? `<span class="smalleabbadge">&nbsp;</span>` : ``}
-          <br> Mobile: ${a.mobile} / SR: ${a.srno} /<span class=newempid>${a.newempid}</span> / Memb: ${a.id}  ${isPhoto(a.photoid)}
+          <br><span class=newempid> Mobile: ${a.mobile} / SR: ${a.srno} / ${a.newempid} / Memb: ${a.id}  ${isPhoto(a.photoid)} </span>
         </td>
       </tr>`;
   });
@@ -812,14 +812,11 @@ async function nameclick(membershipNo) {
   html += `</div>`;
 
   html += `<div class="card-section"><div class="card-section-title">Employment &amp; Pension</div>
-    <div class="card-row"><span class="k">S R No</span><span class="v">${membData.srno}</span></div>
-    <div class="card-row"><span class="k">New Emp Id</span><span class="v">${membData.newempid}</span></div>
+    <div class="card-row"><span class="k">S R No/New Emp Id</span><span class="v">${membData.srno} / ${membData.newempid}</span></div>
     <div class="card-row"><span class="k">Pension Br</span><span class="v">${membData.pensionbr}</span></div>
     <div class="card-row"><span class="k">Pension Acc</span><span class="v">${membData.sbac}</span></div>
     <div class="card-row"><span class="k">Application Scanned</span><span class="v">${membData.scanned}</span></div>
-    <div class="card-row"><span class="k">DOB</span><span class="v">${membData.dob}</span></div>
-    <div class="card-row"><span class="k">DOJ</span><span class="v">${membData.doj}</span></div>
-    <div class="card-row"><span class="k">DOR</span><span class="v">${membData.dor}</span></div>
+    <div class="card-row"><span class="k">DOB / DOJ / DOR </span><span class="v">${membData.dob} / ${membData.doj} / ${membData.dor} </span></div>
     <div class="card-row"><span class="k">Spouse Name</span><span class="v">${membData.spname}</span></div>
   </div>`;
 
