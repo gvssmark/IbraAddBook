@@ -1,9 +1,4 @@
-
-
-
-
-
-const APP_CACHE = "app-shell-v8";
+const APP_CACHE = "app-shell-v9";
 
 // List of core files for offline availability
 const APP_ASSETS = [
