@@ -3,7 +3,7 @@
 
 
 
-const APP_CACHE = "app-shell-v6";
+const APP_CACHE = "app-shell-v7";
 
 // List of core files for offline availability
 const APP_ASSETS = [
