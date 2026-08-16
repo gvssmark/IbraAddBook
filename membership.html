@@ -78,8 +78,8 @@
   .date-field { position:relative; }
   .date-field::after { content:'📅'; position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:14px; pointer-events:none; }
   input.date-display { padding-right:34px !important; cursor:pointer; background:#fff; }
-  input.date-display:disabled { background:#f0f1f3; color:#aaa; cursor:not-allowed; }
-  .date-field:has(input.date-display:disabled)::after { opacity:.35; }
+  input.date-display:disabled { background:#e9ecf0; color:#3a3f44; -webkit-text-fill-color:#3a3f44; opacity:1; cursor:not-allowed; border-color:#c7cbd1; }
+  .date-field:has(input.date-display:disabled)::after { opacity:.5; }
   .date-wheel-wrap { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
   .date-wheel-header { display:flex; background:#f2f4f7; border-bottom:1px solid var(--border); }
   .date-wheel-header div { flex:1; text-align:center; padding:8px 0; font-weight:bold; font-size:13px; color:#444; }
@@ -436,48 +436,31 @@ $('name').addEventListener('blur', e=>{ e.target.value = toProperCase(e.target.v
 // Date suggestions / soft warnings (all editable — never blocking)
 // ---------------------------------------------------------------------
 function refreshDateHints(){
-  const dobIso = $('dob').value, dojIso = $('doj').value, dorIso = $('dor').value;
+  const dobIso = $('dob').value, dojIso = $('doj').value;
   const hintDob=$('hint-dob'), warnDob=$('warn-dob');
   const hintDoj=$('hint-doj'), warnDoj=$('warn-doj');
   const hintDor=$('hint-dor'), warnDor=$('warn-dor');
   [warnDob,warnDoj,warnDor].forEach(w=>{ w.classList.remove('show'); w.textContent=''; });
 
   const today = new Date();
-  const minDobDate = addYears(today,-99), maxDobDate = addYears(today,-60);
-  hintDob.textContent = 'Typical range: '+fmtDMY(minDobDate)+' to '+fmtDMY(maxDobDate)+' (current age 60–99). Editable.';
+  const minDobDate = addYears(today,-99), maxDobDate = addYears(today,-40);
+  hintDob.textContent = 'Allowed range: '+fmtDMY(minDobDate)+' to '+fmtDMY(maxDobDate)+' (age 40–99).';
 
   if(dobIso){
     const dob = parseISO(dobIso).date;
-    const age = yearsBetweenDates(dob, today);
-    if(age<60 || age>99){
-      warnDob.textContent = 'Note: current age (~'+age+' yrs) is outside the usual 60–99 range. Not blocked — please verify.';
-      warnDob.classList.add('show');
-    }
+    const minDoj = addYears(dob,18), maxDoj = addYears(dob,40);
+    hintDoj.textContent = 'Allowed range: '+fmtDMY(minDoj)+' to '+fmtDMY(maxDoj)+' (18–40 yrs after DOB).';
 
-    const minDoj = addYears(dob,18), maxDoj = addYears(dob,30);
-    hintDoj.textContent = 'Typical range: '+fmtDMY(minDoj)+' to '+fmtDMY(maxDoj)+' (age 18–30 at joining). Editable.';
-
-    const minDor = addYears(dob,40), maxDor = addYears(dob,60);
-    const suggDorIso = suggestRetirementISO(dobIso);
-    hintDor.textContent = 'Suggested date: '+isoToDMY(suggDorIso)+'. Typical range: '+fmtDMY(minDor)+' to '+fmtDMY(maxDor)+' (40–60 yrs from DOB). Editable.';
-
+    const thumbDorIso = suggestRetirementISO(dobIso);
     if(dojIso){
-      const doj = parseISO(dojIso).date;
-      if(doj<minDoj || doj>maxDoj){
-        warnDoj.textContent = 'Note: joining date falls outside the usual 18–30 years-from-DOB range. Not blocked — please verify.';
-        warnDoj.classList.add('show');
-      }
-    }
-    if(dorIso){
-      const dor = parseISO(dorIso).date;
-      if(dor<minDor || dor>maxDor){
-        warnDor.textContent = 'Note: retirement date falls outside the usual 40–60 years-from-DOB range. Not blocked — please verify.';
-        warnDor.classList.add('show');
-      }
+      const earliestDorIso = isoAddDays(isoAddYears(dojIso,20),1);
+      hintDor.textContent = 'Normal retirement: '+isoToDMY(thumbDorIso)+'. Earliest (VRS, after 20 yrs service): '+isoToDMY(earliestDorIso)+'.';
+    } else {
+      hintDor.textContent = 'Normal retirement (thumb rule): '+isoToDMY(thumbDorIso)+'. Select Date of Joining to see the earliest VRS date.';
     }
   } else {
-    hintDoj.textContent = 'Enter Date of Birth to see a typical range.';
-    hintDor.textContent = 'Enter Date of Birth to see a suggested date and typical range.';
+    hintDoj.textContent = 'Select Date of Birth first.';
+    hintDor.textContent = 'Select Date of Birth and Date of Joining first.';
   }
 }
 ['dob','doj','dor'].forEach(id => $(id).addEventListener('change', refreshDateHints));
@@ -658,6 +641,7 @@ let pickerState = null;
 function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
 function todayISO(){ const t=new Date(); return t.getFullYear()+'-'+pad2(t.getMonth()+1)+'-'+pad2(t.getDate()); }
 function isoAddYears(iso, n){ const p=parseISO(iso); const d=new Date(p.y+n,p.m-1,p.d); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function isoAddDays(iso, n){ const p=parseISO(iso); const d=new Date(p.y,p.m-1,p.d); d.setDate(d.getDate()+n); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
 
 // clamp {y,m,d} so it falls within [min,max] (min/max are {y,m,d} objects)
 function clampToRange(y,m,d,min,max){
@@ -677,16 +661,17 @@ function clampToRange(y,m,d,min,max){
 }
 
 function buildWheelColumn(el, items, selectedIndex, onSettle){
+  if(el._settleTimer){ clearTimeout(el._settleTimer); el._settleTimer = null; }
   el.innerHTML = items.map(v=>'<div class="wi">'+v+'</div>').join('');
   el.onscroll = null;
   requestAnimationFrame(()=>{
     el.scrollTop = selectedIndex*WHEEL_ITEM_H;
     markSelected(el);
-    let t = null;
     el.onscroll = ()=>{
       markSelected(el);
-      clearTimeout(t);
-      t = setTimeout(()=>{
+      if(el._settleTimer) clearTimeout(el._settleTimer);
+      el._settleTimer = setTimeout(()=>{
+        el._settleTimer = null;
         const idx = Math.max(0, Math.min(items.length-1, Math.round(el.scrollTop/WHEEL_ITEM_H)));
         if(el.scrollTop !== idx*WHEEL_ITEM_H){ el.scrollTo({top: idx*WHEEL_ITEM_H, behavior:'smooth'}); }
         markSelected(el);
@@ -722,14 +707,14 @@ function rebuildDayColumn(){
 }
 
 // minISO/maxISO are 'YYYY-MM-DD' strings — the picker will not let the user scroll past them
-function openDatePicker(targetId, minISO, maxISO, title){
+function openDatePicker(targetId, minISO, maxISO, title, defaultISO){
   if(minISO > maxISO){ const t=minISO; minISO=maxISO; maxISO=t; } // guard against inverted bounds
   const min = parseISO(minISO), max = parseISO(maxISO);
   const hidden = $(targetId);
   const iso = hidden.value;
   let y, m, d;
   if(iso){ const p = parseISO(iso); y=p.y; m=p.m; d=p.d; }
-  else { const mid = parseISO(minISO); y=mid.y; m=mid.m; d=mid.d; }
+  else { const mid = parseISO(defaultISO || minISO); y=mid.y; m=mid.m; d=mid.d; }
   ({y,m,d} = clampToRange(y,m,d,min,max));
 
   pickerState = { targetId, min, max, y, m, d };
@@ -750,20 +735,28 @@ const DATE_WIZARD_FIELDS = ['dob','doj','dor'];
 const DATE_WIZARD_TITLES = { dob:'Date of Birth', doj:'Date of Joining Bank', dor:'Date of Retirement' };
 let wizardActive = false, wizardStep = 0;
 
+// Rules:
+//  DoB: any day, age 40–99 (min age 40, max age 99)
+//  DoJ: DoB+18yrs to DoB+40yrs
+//  DoR: earliest = DoJ+20yrs+1day ("any day after" 20 years' service);
+//       latest = thumb-rule date — last day of DoB's birth month in the 60th
+//       year, or the previous month if DoB falls on the 1st (Rules 1 & 2,
+//       via the existing suggestRetirementISO()). DoR must respect both.
 function boundsForWizardField(id){
   const today = todayISO();
-  if(id==='dob') return [isoAddYears(today,-99), isoAddYears(today,-60)];
+  if(id==='dob') return [isoAddYears(today,-99), isoAddYears(today,-40)];
   if(id==='doj'){
     const dob = $('dob').value;
     let min = dob ? isoAddYears(dob,18) : isoAddYears(today,-90);
-    let max = dob ? isoAddYears(dob,30) : today;
+    let max = dob ? isoAddYears(dob,40) : today;
     return [min,max];
   }
   // dor
   const dob = $('dob').value, doj = $('doj').value;
-  let min = dob ? isoAddYears(dob,40) : isoAddYears(today,-60);
-  let max = dob ? isoAddYears(dob,60) : isoAddYears(today,50);
-  if(doj && doj > min) min = doj;
+  const thumbRule = dob ? suggestRetirementISO(dob) : isoAddYears(today,50);
+  let max = thumbRule;
+  let min = doj ? isoAddDays(isoAddYears(doj,20), 1) : thumbRule;
+  if(min > max) min = max; // edge case: 20yrs service already exceeds the mandatory ceiling
   return [min,max];
 }
 
@@ -771,7 +764,8 @@ function openWizardStep(){
   const id = DATE_WIZARD_FIELDS[wizardStep];
   const [min,max] = boundsForWizardField(id);
   const isLast = wizardStep === DATE_WIZARD_FIELDS.length-1;
-  openDatePicker(id, min, max, DATE_WIZARD_TITLES[id] + ' (' + (wizardStep+1) + ' of ' + DATE_WIZARD_FIELDS.length + ')');
+  const defaultISO = (id==='dor') ? max : min; // DoR defaults to the thumb-rule (normal retirement) date
+  openDatePicker(id, min, max, DATE_WIZARD_TITLES[id] + ' (' + (wizardStep+1) + ' of ' + DATE_WIZARD_FIELDS.length + ')', defaultISO);
   $('dateDoneBtn').textContent = isLast ? 'Done' : 'Next';
 }
 
@@ -783,10 +777,12 @@ function startDateWizard(){
 
 $('dateDoneBtn').addEventListener('click', ()=>{
   if(!pickerState) return;
-  const iso = pickerState.y+'-'+pad2(pickerState.m)+'-'+pad2(pickerState.d);
-  const hidden = $(pickerState.targetId);
+  const s = pickerState;
+  const clamped = clampToRange(s.y, s.m, s.d, s.min, s.max); // safety net: guarantees the committed value is never outside its own bounds
+  const iso = clamped.y+'-'+pad2(clamped.m)+'-'+pad2(clamped.d);
+  const hidden = $(s.targetId);
   hidden.value = iso;
-  $(pickerState.targetId+'Display').value = isoToDMY(iso);
+  $(s.targetId+'Display').value = isoToDMY(iso);
   hidden.dispatchEvent(new Event('change'));
   pickerState = null;
 
