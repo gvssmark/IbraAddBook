@@ -73,6 +73,20 @@
 
   /* result / data summary */
   #dataSummary { font-size:13px; }
+
+  /* date wheel picker */
+  .date-field { position:relative; }
+  .date-field::after { content:'📅'; position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:14px; pointer-events:none; }
+  input.date-display { padding-right:34px !important; cursor:pointer; background:#fff; }
+  .date-wheel-wrap { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .date-wheel-header { display:flex; background:#f2f4f7; border-bottom:1px solid var(--border); }
+  .date-wheel-header div { flex:1; text-align:center; padding:8px 0; font-weight:bold; font-size:13px; color:#444; }
+  .date-wheel-cols { display:flex; position:relative; height:200px; }
+  .date-wheel-highlight { position:absolute; left:0; right:0; top:80px; height:40px; background:rgba(26,115,232,0.08); border-top:1px solid #c7d8f5; border-bottom:1px solid #c7d8f5; pointer-events:none; z-index:2; }
+  .date-wheel-col { flex:1; overflow-y:scroll; scroll-snap-type:y mandatory; -webkit-overflow-scrolling:touch; text-align:center; padding:80px 0; scrollbar-width:none; }
+  .date-wheel-col::-webkit-scrollbar { display:none; }
+  .date-wheel-col .wi { height:40px; line-height:40px; scroll-snap-align:center; font-size:16px; color:#aaa; }
+  .date-wheel-col .wi.sel { color:#111; font-weight:bold; }
   #dataSummary table { width:100%; border-collapse:collapse; }
   #dataSummary td { padding:6px 4px; border-bottom:1px solid var(--border); vertical-align:top; }
   #dataSummary td.k { font-weight:bold; color:#555; width:42%; }
@@ -122,21 +136,30 @@
       <div class="row3">
         <div class="field">
           <label>Date of Birth <span class="req">*</span></label>
-          <input type="date" id="dob">
+          <div class="date-field">
+            <input type="text" id="dobDisplay" class="date-display" readonly placeholder="DD/MM/YYYY">
+          </div>
+          <input type="hidden" id="dob">
           <div class="hint" id="hint-dob"></div>
           <div class="warn" id="warn-dob"></div>
           <div class="errtext" id="err-dob"></div>
         </div>
         <div class="field">
           <label>Date of Joining Bank <span class="req">*</span></label>
-          <input type="date" id="doj">
+          <div class="date-field">
+            <input type="text" id="dojDisplay" class="date-display" readonly placeholder="DD/MM/YYYY">
+          </div>
+          <input type="hidden" id="doj">
           <div class="hint" id="hint-doj"></div>
           <div class="warn" id="warn-doj"></div>
           <div class="errtext" id="err-doj"></div>
         </div>
         <div class="field">
           <label>Date of Retirement <span class="req">*</span></label>
-          <input type="date" id="dor">
+          <div class="date-field">
+            <input type="text" id="dorDisplay" class="date-display" readonly placeholder="DD/MM/YYYY">
+          </div>
+          <input type="hidden" id="dor">
           <div class="hint" id="hint-dor"></div>
           <div class="warn" id="warn-dor"></div>
           <div class="errtext" id="err-dor"></div>
@@ -321,6 +344,26 @@
     <div class="modal-actions">
       <button type="button" class="btn secondary" id="cropCancelBtn">Cancel</button>
       <button type="button" class="btn" id="cropConfirmBtn">Use This</button>
+    </div>
+  </div>
+</div>
+
+<!-- Date wheel picker -->
+<div class="modal-overlay" id="dateModal" style="display:none;">
+  <div class="modal-box" style="max-width:320px;">
+    <h3 id="dateModalTitle">Select Date</h3>
+    <div class="date-wheel-wrap">
+      <div class="date-wheel-header"><div>YYYY</div><div>MM</div><div>DD</div></div>
+      <div class="date-wheel-cols">
+        <div class="date-wheel-highlight"></div>
+        <div class="date-wheel-col" id="wheelYear"></div>
+        <div class="date-wheel-col" id="wheelMonth"></div>
+        <div class="date-wheel-col" id="wheelDay"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn secondary" id="dateCancelBtn">Cancel</button>
+      <button type="button" class="btn" id="dateDoneBtn">Done</button>
     </div>
   </div>
 </div>
@@ -611,6 +654,86 @@ function fileToDataUrl(file){
     r.readAsDataURL(file);
   });
 }
+
+// ---------------------------------------------------------------------
+// Date wheel picker (replaces native <input type=date>)
+// ---------------------------------------------------------------------
+const WHEEL_ITEM_H = 40;
+let pickerState = null;
+
+function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+
+function buildWheelColumn(el, items, selectedIndex, onSettle){
+  el.innerHTML = items.map(v=>'<div class="wi">'+v+'</div>').join('');
+  el.onscroll = null;
+  requestAnimationFrame(()=>{
+    el.scrollTop = selectedIndex*WHEEL_ITEM_H;
+    markSelected(el);
+    let t = null;
+    el.onscroll = ()=>{
+      markSelected(el);
+      clearTimeout(t);
+      t = setTimeout(()=>{
+        const idx = Math.max(0, Math.min(items.length-1, Math.round(el.scrollTop/WHEEL_ITEM_H)));
+        if(el.scrollTop !== idx*WHEEL_ITEM_H){ el.scrollTo({top: idx*WHEEL_ITEM_H, behavior:'smooth'}); }
+        markSelected(el);
+        onSettle(idx);
+      }, 130);
+    };
+  });
+}
+function markSelected(el){
+  const idx = Math.round(el.scrollTop/WHEEL_ITEM_H);
+  el.querySelectorAll('.wi').forEach((n,i)=> n.classList.toggle('sel', i===idx));
+}
+
+function rebuildDayColumn(){
+  const s = pickerState;
+  const count = daysInMonth(s.y, s.m);
+  if(s.d > count) s.d = count;
+  const days = []; for(let dd=1; dd<=count; dd++) days.push(pad2(dd));
+  buildWheelColumn($('wheelDay'), days, s.d-1, idx=>{ pickerState.d = idx+1; });
+}
+
+function openDatePicker(targetId, minYear, maxYear, title){
+  const hidden = $(targetId);
+  const iso = hidden.value;
+  let y, m, d;
+  if(iso){ const p = parseISO(iso); y=p.y; m=p.m; d=p.d; }
+  else { y = Math.round((minYear+maxYear)/2); m = 1; d = 1; }
+  y = Math.max(minYear, Math.min(maxYear, y));
+
+  pickerState = { targetId, minYear, maxYear, y, m, d };
+  $('dateModalTitle').textContent = title;
+  $('dateModal').style.display = 'flex';
+
+  const years = []; for(let yy=minYear; yy<=maxYear; yy++) years.push(yy);
+  const months = []; for(let mm=1; mm<=12; mm++) months.push(pad2(mm));
+
+  buildWheelColumn($('wheelYear'), years, years.indexOf(y), idx=>{ pickerState.y = years[idx]; rebuildDayColumn(); });
+  buildWheelColumn($('wheelMonth'), months, m-1, idx=>{ pickerState.m = idx+1; rebuildDayColumn(); });
+  rebuildDayColumn();
+}
+
+$('dateCancelBtn').addEventListener('click', ()=>{ $('dateModal').style.display='none'; pickerState=null; });
+
+$('dateDoneBtn').addEventListener('click', ()=>{
+  if(!pickerState) return;
+  const iso = pickerState.y+'-'+pad2(pickerState.m)+'-'+pad2(pickerState.d);
+  const hidden = $(pickerState.targetId);
+  hidden.value = iso;
+  $(pickerState.targetId+'Display').value = isoToDMY(iso);
+  hidden.dispatchEvent(new Event('change'));
+  $('dateModal').style.display = 'none';
+  pickerState = null;
+});
+
+(function(){
+  const thisYear = new Date().getFullYear();
+  $('dobDisplay').addEventListener('click', ()=> openDatePicker('dob', thisYear-100, thisYear+5, 'Date of Birth'));
+  $('dojDisplay').addEventListener('click', ()=> openDatePicker('doj', thisYear-100, thisYear+5, 'Date of Joining Bank'));
+  $('dorDisplay').addEventListener('click', ()=> openDatePicker('dor', thisYear-100, thisYear+15, 'Date of Retirement'));
+})();
 
 // ---------------------------------------------------------------------
 // Photo capture (camera + gallery)
