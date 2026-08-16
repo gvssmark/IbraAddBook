@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>IBRA Silver Jubilee Collections</title>
+<style>
+  :root{
+    --header-bg:#1b3a63;
+    --header-fg:#ffffff;
+    --subheader-bg:#2c5282;
+    --subheader-fg:#ffffff;
+    --row-alt:#f2f6fb;
+    --border:#d7dfe9;
+    --text:#1a1a1a;
+    --accent:#1b3a63;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:#f7f9fc;
+    color:var(--text);
+    -webkit-text-size-adjust:100%;
+  }
+  header.title-bar{
+    position:sticky;
+    top:0;
+    z-index:30;
+    background:var(--header-bg);
+    color:var(--header-fg);
+    padding:12px 16px;
+    text-align:center;
+    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  }
+  header.title-bar h1{
+    margin:0;
+    font-size:1.05rem;
+    line-height:1.3;
+    letter-spacing:0.3px;
+    font-weight:700;
+  }
+  .info-bar{
+    position:sticky;
+    top:var(--title-h,48px);
+    z-index:29;
+    background:var(--subheader-bg);
+    color:var(--subheader-fg);
+    padding:8px 14px;
+    font-size:0.85rem;
+    text-align:center;
+    font-weight:600;
+    box-shadow:0 2px 4px rgba(0,0,0,0.1);
+  }
+  .info-bar span{margin:0 8px;white-space:nowrap;display:inline-block;}
+  .status{
+    padding:10px 14px;
+    font-size:0.85rem;
+    color:#555;
+    text-align:center;
+  }
+  .status.error{color:#b00020;font-weight:600;}
+  .table-wrap{
+    padding:8px;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:#fff;
+    font-size:0.82rem;
+    box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  }
+  thead th{
+    background:#e8eef7;
+    color:var(--accent);
+    text-align:left;
+    padding:8px 8px;
+    border-bottom:2px solid var(--border);
+    white-space:nowrap;
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.3px;
+  }
+  tbody td{
+    padding:8px 8px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+    word-break:break-word;
+  }
+  tbody tr:nth-child(even){background:var(--row-alt);}
+  tbody td.sr, thead th.sr{
+    text-align:center;
+    width:36px;
+    color:#666;
+  }
+  .num{text-align:right;white-space:nowrap;}
+  .table-scroll{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    border-radius:6px;
+  }
+  footer{
+    text-align:center;
+    font-size:0.72rem;
+    color:#888;
+    padding:16px 10px 24px;
+  }
+  @media (max-width:480px){
+    table{font-size:0.76rem;}
+    thead th, tbody td{padding:6px 6px;}
+    header.title-bar h1{font-size:0.95rem;}
+  }
+</style>
+</head>
+<body>
+
+<header class="title-bar" id="titleBar">
+  <h1>IBRA SILVER JUBILEE COLLECTIONS</h1>
+</header>
+<div class="info-bar" id="infoBar">Loading summary…</div>
+
+<div id="status" class="status">Loading data…</div>
+
+<div class="table-wrap">
+  <div class="table-scroll">
+    <table id="dataTable" style="display:none;">
+      <thead>
+        <tr id="headerRow"></tr>
+      </thead>
+      <tbody id="bodyRows"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer>Data synced from Google Sheets</footer>
+
+<script>
+(function(){
+  var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwo-TtPn3DAjHSPCXDwPFerT36QyfPPvUTi7uQEvcmjJso_aWpaKefUsgx_vpJOowHUgg/exec?sheetid=17E56tpTCDAObmtv5YuE-ESvU0fsOLQXleKhipW71-KY&sheetname=Collections';
+
+  var titleBar = document.getElementById('titleBar');
+  var infoBar = document.getElementById('infoBar');
+  var statusEl = document.getElementById('status');
+  var table = document.getElementById('dataTable');
+  var headerRow = document.getElementById('headerRow');
+  var bodyRows = document.getElementById('bodyRows');
+
+  // Keep the info bar positioned right below the title bar, whatever its height is.
+  function positionStickyBars(){
+    var h = titleBar.offsetHeight;
+    document.documentElement.style.setProperty('--title-h', h + 'px');
+    infoBar.style.top = h + 'px';
+  }
+
+  function isDateHeader(name){
+    return /date/i.test(name || '');
+  }
+
+  function isNumericHeader(name){
+    return /(amount|rs\.?|₹|total|balance|paid|due|fee|contribution)/i.test(name || '');
+  }
+
+  // Parses values Apps Script commonly returns for dates: ISO strings,
+  // "Date(yyyy,m,d,...)" style strings, or already-formatted dd/mm/yyyy strings.
+  function parseDateValue(val){
+    if (val === null || val === undefined || val === '') return null;
+    if (val instanceof Date) return val;
+    if (typeof val === 'number') return new Date(val);
+    var s = String(val).trim();
+    var m = s.match(/^Date\((\d+),(\d+),(\d+)/);
+    if (m) return new Date(parseInt(m[1],10), parseInt(m[2],10), parseInt(m[3],10));
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) return d;
+    return null;
+  }
+
+  function formatDateIST(val){
+    var d = parseDateValue(val);
+    if (!d) return (val === null || val === undefined) ? '' : String(val);
+    try {
+      var parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit', month: '2-digit', year: 'numeric'
+      }).formatToParts(d);
+      var day, month, year;
+      parts.forEach(function(p){
+        if (p.type === 'day') day = p.value;
+        if (p.type === 'month') month = p.value;
+        if (p.type === 'year') year = p.value;
+      });
+      return day + '/' + month + '/' + year;
+    } catch (e) {
+      return String(val);
+    }
+  }
+
+  function findNameIndex(headers){
+    for (var i = 0; i < headers.length; i++){
+      if (/^name$/i.test(String(headers[i]).trim())) return i;
+    }
+    for (var j = 0; j < headers.length; j++){
+      if (/name/i.test(String(headers[j]))) return j;
+    }
+    return -1;
+  }
+
+  function render(rawData){
+    if (!Array.isArray(rawData) || rawData.length < 2) {
+      throw new Error('Unexpected data shape from source');
+    }
+
+    var infoRow = rawData[0];
+    var headers = rawData[1];
+    var rows = rawData.slice(2);
+
+    // Fixed info bar: show data[0] as a summary line.
+    if (Array.isArray(infoRow)) {
+      infoBar.innerHTML = infoRow
+        .filter(function(v){ return v !== '' && v !== null && v !== undefined; })
+        .map(function(v){ return '<span>' + String(v) + '</span>'; })
+        .join('');
+      if (!infoBar.innerHTML) infoBar.style.display = 'none';
+    } else {
+      infoBar.textContent = String(infoRow);
+    }
+
+    var nameIdx = findNameIndex(headers);
+
+    // Sort rows by the "name" column, blanks last.
+    if (nameIdx !== -1) {
+      rows.sort(function(a, b){
+        var av = (a[nameIdx] === null || a[nameIdx] === undefined) ? '' : String(a[nameIdx]).trim();
+        var bv = (b[nameIdx] === null || b[nameIdx] === undefined) ? '' : String(b[nameIdx]).trim();
+        if (!av && !bv) return 0;
+        if (!av) return 1;
+        if (!bv) return -1;
+        return av.localeCompare(bv, undefined, { sensitivity: 'base' });
+      });
+    }
+
+    // Header row: Sr. No. + original headers
+    var thSr = document.createElement('th');
+    thSr.className = 'sr';
+    thSr.textContent = '#';
+    headerRow.appendChild(thSr);
+
+    headers.forEach(function(h){
+      var th = document.createElement('th');
+      if (isNumericHeader(h)) th.classList.add('num');
+      th.textContent = h;
+      headerRow.appendChild(th);
+    });
+
+    // Body rows
+    var frag = document.createDocumentFragment();
+    rows.forEach(function(row, i){
+      if (row.every(function(c){ return c === '' || c === null || c === undefined; })) return;
+      var tr = document.createElement('tr');
+
+      var tdSr = document.createElement('td');
+      tdSr.className = 'sr';
+      tdSr.textContent = i + 1;
+      tr.appendChild(tdSr);
+
+      headers.forEach(function(h, colIdx){
+        var td = document.createElement('td');
+        var val = row[colIdx];
+        if (isDateHeader(h)) {
+          td.textContent = formatDateIST(val);
+        } else if (isNumericHeader(h)) {
+          td.classList.add('num');
+          td.textContent = (val === null || val === undefined || val === '') ? '' : val;
+        } else {
+          td.textContent = (val === null || val === undefined) ? '' : val;
+        }
+        tr.appendChild(td);
+      });
+
+      frag.appendChild(tr);
+    });
+    bodyRows.appendChild(frag);
+
+    table.style.display = '';
+    statusEl.style.display = 'none';
+    positionStickyBars();
+    window.addEventListener('resize', positionStickyBars);
+  }
+
+  fetch(SHEET_URL)
+    .then(function(res){
+      if (!res.ok) throw new Error('Network response was not ok (' + res.status + ')');
+      return res.json();
+    })
+    .then(function(json){
+      // Support either a raw array, or an object wrapping the array (e.g. {data: [...]})
+      var rawData = Array.isArray(json) ? json : (json && json.data ? json.data : null);
+      if (!rawData) throw new Error('No data array found in response');
+      render(rawData);
+    })
+    .catch(function(err){
+      statusEl.textContent = 'Could not load data: ' + err.message;
+      statusEl.classList.add('error');
+      infoBar.style.display = 'none';
+    });
+})();
+</script>
+
+</body>
+</html>
