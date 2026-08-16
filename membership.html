@@ -741,7 +741,45 @@ function openDatePicker(targetId, minISO, maxISO, title){
   rebuildMonthColumn();
 }
 
-$('dateCancelBtn').addEventListener('click', ()=>{ $('dateModal').style.display='none'; pickerState=null; });
+$('dateCancelBtn').addEventListener('click', ()=>{
+  $('dateModal').style.display='none'; pickerState=null;
+  wizardActive = false; $('dateDoneBtn').textContent = 'Done';
+});
+
+const DATE_WIZARD_FIELDS = ['dob','doj','dor'];
+const DATE_WIZARD_TITLES = { dob:'Date of Birth', doj:'Date of Joining Bank', dor:'Date of Retirement' };
+let wizardActive = false, wizardStep = 0;
+
+function boundsForWizardField(id){
+  const today = todayISO();
+  if(id==='dob') return [isoAddYears(today,-99), isoAddYears(today,-60)];
+  if(id==='doj'){
+    const dob = $('dob').value;
+    let min = dob ? isoAddYears(dob,18) : isoAddYears(today,-90);
+    let max = dob ? isoAddYears(dob,30) : today;
+    return [min,max];
+  }
+  // dor
+  const dob = $('dob').value, doj = $('doj').value;
+  let min = dob ? isoAddYears(dob,40) : isoAddYears(today,-60);
+  let max = dob ? isoAddYears(dob,60) : isoAddYears(today,50);
+  if(doj && doj > min) min = doj;
+  return [min,max];
+}
+
+function openWizardStep(){
+  const id = DATE_WIZARD_FIELDS[wizardStep];
+  const [min,max] = boundsForWizardField(id);
+  const isLast = wizardStep === DATE_WIZARD_FIELDS.length-1;
+  openDatePicker(id, min, max, DATE_WIZARD_TITLES[id] + ' (' + (wizardStep+1) + ' of ' + DATE_WIZARD_FIELDS.length + ')');
+  $('dateDoneBtn').textContent = isLast ? 'Done' : 'Next';
+}
+
+function startDateWizard(){
+  wizardActive = true;
+  wizardStep = 0;
+  openWizardStep();
+}
 
 $('dateDoneBtn').addEventListener('click', ()=>{
   if(!pickerState) return;
@@ -750,49 +788,28 @@ $('dateDoneBtn').addEventListener('click', ()=>{
   hidden.value = iso;
   $(pickerState.targetId+'Display').value = isoToDMY(iso);
   hidden.dispatchEvent(new Event('change'));
-  $('dateModal').style.display = 'none';
   pickerState = null;
+
+  if(wizardActive){
+    wizardStep++;
+    if(wizardStep < DATE_WIZARD_FIELDS.length){
+      openWizardStep();
+    } else {
+      wizardActive = false;
+      $('dateModal').style.display = 'none';
+      $('dateDoneBtn').textContent = 'Done';
+    }
+  } else {
+    $('dateModal').style.display = 'none';
+  }
 });
 
-// Bounds: DOB uses the typical 60–99 age range; DOJ/DOR use the typical
-// windows relative to DOB (18–30 yrs for joining, 40–60 yrs for retirement),
-// further narrowed by whichever adjacent date is already picked so the
-// sequence stays chronologically possible.
-(function(){
-  $('dobDisplay').addEventListener('click', ()=>{
-    const today = todayISO();
-    openDatePicker('dob', isoAddYears(today,-99), isoAddYears(today,-60), 'Date of Birth');
-  });
-  $('dojDisplay').addEventListener('click', ()=>{
-    if($('dojDisplay').disabled) return;
-    const dob = $('dob').value, dor = $('dor').value;
-    let min = dob ? isoAddYears(dob,18) : isoAddYears(todayISO(),-90);
-    let max = dob ? isoAddYears(dob,30) : todayISO();
-    if(dor && dor < max) max = dor;
-    openDatePicker('doj', min, max, 'Date of Joining Bank');
-  });
-  $('dorDisplay').addEventListener('click', ()=>{
-    if($('dorDisplay').disabled) return;
-    const doj = $('doj').value, dob = $('dob').value;
-    let min = dob ? isoAddYears(dob,40) : isoAddYears(todayISO(),-60);
-    let max = dob ? isoAddYears(dob,60) : isoAddYears(todayISO(),50);
-    if(doj && doj > min) min = doj;
-    openDatePicker('dor', min, max, 'Date of Retirement');
-  });
-})();
-
-// Collect DOB, then DOJ, then DOR — one after the other
-function updateDateFieldLocks(){
-  const dobSet = !!$('dob').value, dojSet = !!$('doj').value;
-  const dojF = $('dojDisplay'), dorF = $('dorDisplay');
-  dojF.disabled = !dobSet;
-  dojF.placeholder = dobSet ? 'DD/MM/YYYY' : 'Enter Date of Birth first';
-  dorF.disabled = !dojSet;
-  dorF.placeholder = dojSet ? 'DD/MM/YYYY' : 'Enter Date of Joining first';
-}
-$('dob').addEventListener('change', updateDateFieldLocks);
-$('doj').addEventListener('change', updateDateFieldLocks);
-updateDateFieldLocks();
+// Only Date of Birth is tappable — it drives a 3-step wizard (DOB → DOJ → DOR)
+// within the same modal. DOJ and DOR are locked; to correct any of the three,
+// reopen from Date of Birth (each step opens pre-filled with its current value).
+$('dobDisplay').addEventListener('click', startDateWizard);
+$('dojDisplay').disabled = true;
+$('dorDisplay').disabled = true;
 
 // ---------------------------------------------------------------------
 // Photo capture (camera + gallery)
@@ -1160,7 +1177,6 @@ function resetEntireForm(){
   sigDataUrl = null; $('sigPreview').style.display='none'; $('sigRemoveRow').style.display='none';
   populateStates();
   refreshDateHints();
-  updateDateFieldLocks();
   document.querySelectorAll('.errtext.show').forEach(e=>e.classList.remove('show'));
   document.querySelectorAll('.warn.show').forEach(e=>e.classList.remove('show'));
   $('submitMsgs').innerHTML = '';
