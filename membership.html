@@ -78,6 +78,8 @@
   .date-field { position:relative; }
   .date-field::after { content:'📅'; position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:14px; pointer-events:none; }
   input.date-display { padding-right:34px !important; cursor:pointer; background:#fff; }
+  input.date-display:disabled { background:#f0f1f3; color:#aaa; cursor:not-allowed; }
+  .date-field:has(input.date-display:disabled)::after { opacity:.35; }
   .date-wheel-wrap { border:1px solid var(--border); border-radius:8px; overflow:hidden; }
   .date-wheel-header { display:flex; background:#f2f4f7; border-bottom:1px solid var(--border); }
   .date-wheel-header div { flex:1; text-align:center; padding:8px 0; font-weight:bold; font-size:13px; color:#444; }
@@ -265,27 +267,19 @@
 
     <div class="card">
       <h2>Signature</h2>
-      <div class="tabbar">
-        <button type="button" class="tabbtn active" id="tabDraw">Draw Signature</button>
-        <button type="button" class="tabbtn" id="tabUpload">Upload / Capture Photo</button>
-      </div>
-
-      <div id="sigDrawPane">
-        <div class="capture-box">
-          <p class="hint" style="margin:0 0 8px;">Opens a full-screen pad for a clearer signature. Rotate your device to landscape once it opens.</p>
-          <div class="btnrow"><button type="button" class="btn" id="openSigPadBtn">Open Signature Pad</button></div>
+      <div class="capture-box">
+        <p class="hint" style="margin:0 0 8px;">Choose how to provide the signature.</p>
+        <div class="btnrow">
+          <button type="button" class="btn" id="openSigPadBtn">1. Capture from Signature Pad</button>
         </div>
-      </div>
-
-      <div id="sigUploadPane" style="display:none;">
-        <div class="capture-box">
-          <div class="btnrow">
-            <button type="button" class="btn" id="sigTakeBtn">Take Photo</button>
-            <button type="button" class="btn secondary" id="sigUploadBtn">Upload from Gallery</button>
-          </div>
-          <input type="file" id="sigCaptureInput" accept="image/*" capture="environment">
-          <input type="file" id="sigGalleryInput" accept="image/*">
+        <div class="btnrow">
+          <button type="button" class="btn" id="sigTakeBtn">2. Take Photo of Signature on Paper</button>
         </div>
+        <div class="btnrow">
+          <button type="button" class="btn secondary" id="sigUploadBtn">3. Upload from Image</button>
+        </div>
+        <input type="file" id="sigCaptureInput" accept="image/*" capture="environment">
+        <input type="file" id="sigGalleryInput" accept="image/*">
       </div>
 
       <img id="sigPreview" class="capture-preview sig" style="display:none;">
@@ -662,6 +656,25 @@ const WHEEL_ITEM_H = 40;
 let pickerState = null;
 
 function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+function todayISO(){ const t=new Date(); return t.getFullYear()+'-'+pad2(t.getMonth()+1)+'-'+pad2(t.getDate()); }
+function isoAddYears(iso, n){ const p=parseISO(iso); const d=new Date(p.y+n,p.m-1,p.d); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+
+// clamp {y,m,d} so it falls within [min,max] (min/max are {y,m,d} objects)
+function clampToRange(y,m,d,min,max){
+  if(y<min.y) y=min.y;
+  if(y>max.y) y=max.y;
+  const loM = (y===min.y) ? min.m : 1;
+  const hiM = (y===max.y) ? max.m : 12;
+  if(m<loM) m=loM;
+  if(m>hiM) m=hiM;
+  const dim = daysInMonth(y,m);
+  let loD = (y===min.y && m===min.m) ? min.d : 1;
+  let hiD = (y===max.y && m===max.m) ? Math.min(max.d,dim) : dim;
+  if(loD>hiD) loD=hiD;
+  if(d<loD) d=loD;
+  if(d>hiD) d=hiD;
+  return {y,m,d};
+}
 
 function buildWheelColumn(el, items, selectedIndex, onSettle){
   el.innerHTML = items.map(v=>'<div class="wi">'+v+'</div>').join('');
@@ -687,32 +700,45 @@ function markSelected(el){
   el.querySelectorAll('.wi').forEach((n,i)=> n.classList.toggle('sel', i===idx));
 }
 
-function rebuildDayColumn(){
+function rebuildMonthColumn(){
   const s = pickerState;
-  const count = daysInMonth(s.y, s.m);
-  if(s.d > count) s.d = count;
-  const days = []; for(let dd=1; dd<=count; dd++) days.push(pad2(dd));
-  buildWheelColumn($('wheelDay'), days, s.d-1, idx=>{ pickerState.d = idx+1; });
+  const loM = (s.y===s.min.y) ? s.min.m : 1;
+  const hiM = (s.y===s.max.y) ? s.max.m : 12;
+  if(s.m<loM) s.m=loM;
+  if(s.m>hiM) s.m=hiM;
+  const months = []; for(let mm=loM; mm<=hiM; mm++) months.push(pad2(mm));
+  buildWheelColumn($('wheelMonth'), months, s.m-loM, idx=>{ pickerState.m = loM+idx; rebuildDayColumn(); });
 }
 
-function openDatePicker(targetId, minYear, maxYear, title){
+function rebuildDayColumn(){
+  const s = pickerState;
+  const dim = daysInMonth(s.y, s.m);
+  const loD = (s.y===s.min.y && s.m===s.min.m) ? s.min.d : 1;
+  const hiD = (s.y===s.max.y && s.m===s.max.m) ? Math.min(s.max.d,dim) : dim;
+  if(s.d<loD) s.d=loD;
+  if(s.d>hiD) s.d=hiD;
+  const days = []; for(let dd=loD; dd<=hiD; dd++) days.push(pad2(dd));
+  buildWheelColumn($('wheelDay'), days, s.d-loD, idx=>{ pickerState.d = loD+idx; });
+}
+
+// minISO/maxISO are 'YYYY-MM-DD' strings — the picker will not let the user scroll past them
+function openDatePicker(targetId, minISO, maxISO, title){
+  if(minISO > maxISO){ const t=minISO; minISO=maxISO; maxISO=t; } // guard against inverted bounds
+  const min = parseISO(minISO), max = parseISO(maxISO);
   const hidden = $(targetId);
   const iso = hidden.value;
   let y, m, d;
   if(iso){ const p = parseISO(iso); y=p.y; m=p.m; d=p.d; }
-  else { y = Math.round((minYear+maxYear)/2); m = 1; d = 1; }
-  y = Math.max(minYear, Math.min(maxYear, y));
+  else { const mid = parseISO(minISO); y=mid.y; m=mid.m; d=mid.d; }
+  ({y,m,d} = clampToRange(y,m,d,min,max));
 
-  pickerState = { targetId, minYear, maxYear, y, m, d };
+  pickerState = { targetId, min, max, y, m, d };
   $('dateModalTitle').textContent = title;
   $('dateModal').style.display = 'flex';
 
-  const years = []; for(let yy=minYear; yy<=maxYear; yy++) years.push(yy);
-  const months = []; for(let mm=1; mm<=12; mm++) months.push(pad2(mm));
-
-  buildWheelColumn($('wheelYear'), years, years.indexOf(y), idx=>{ pickerState.y = years[idx]; rebuildDayColumn(); });
-  buildWheelColumn($('wheelMonth'), months, m-1, idx=>{ pickerState.m = idx+1; rebuildDayColumn(); });
-  rebuildDayColumn();
+  const years = []; for(let yy=min.y; yy<=max.y; yy++) years.push(yy);
+  buildWheelColumn($('wheelYear'), years, years.indexOf(y), idx=>{ pickerState.y = years[idx]; rebuildMonthColumn(); });
+  rebuildMonthColumn();
 }
 
 $('dateCancelBtn').addEventListener('click', ()=>{ $('dateModal').style.display='none'; pickerState=null; });
@@ -728,12 +754,45 @@ $('dateDoneBtn').addEventListener('click', ()=>{
   pickerState = null;
 });
 
+// Bounds: DOB uses the typical 60–99 age range; DOJ/DOR use the typical
+// windows relative to DOB (18–30 yrs for joining, 40–60 yrs for retirement),
+// further narrowed by whichever adjacent date is already picked so the
+// sequence stays chronologically possible.
 (function(){
-  const thisYear = new Date().getFullYear();
-  $('dobDisplay').addEventListener('click', ()=> openDatePicker('dob', thisYear-100, thisYear+5, 'Date of Birth'));
-  $('dojDisplay').addEventListener('click', ()=> openDatePicker('doj', thisYear-100, thisYear+5, 'Date of Joining Bank'));
-  $('dorDisplay').addEventListener('click', ()=> openDatePicker('dor', thisYear-100, thisYear+15, 'Date of Retirement'));
+  $('dobDisplay').addEventListener('click', ()=>{
+    const today = todayISO();
+    openDatePicker('dob', isoAddYears(today,-99), isoAddYears(today,-60), 'Date of Birth');
+  });
+  $('dojDisplay').addEventListener('click', ()=>{
+    if($('dojDisplay').disabled) return;
+    const dob = $('dob').value, dor = $('dor').value;
+    let min = dob ? isoAddYears(dob,18) : isoAddYears(todayISO(),-90);
+    let max = dob ? isoAddYears(dob,30) : todayISO();
+    if(dor && dor < max) max = dor;
+    openDatePicker('doj', min, max, 'Date of Joining Bank');
+  });
+  $('dorDisplay').addEventListener('click', ()=>{
+    if($('dorDisplay').disabled) return;
+    const doj = $('doj').value, dob = $('dob').value;
+    let min = dob ? isoAddYears(dob,40) : isoAddYears(todayISO(),-60);
+    let max = dob ? isoAddYears(dob,60) : isoAddYears(todayISO(),50);
+    if(doj && doj > min) min = doj;
+    openDatePicker('dor', min, max, 'Date of Retirement');
+  });
 })();
+
+// Collect DOB, then DOJ, then DOR — one after the other
+function updateDateFieldLocks(){
+  const dobSet = !!$('dob').value, dojSet = !!$('doj').value;
+  const dojF = $('dojDisplay'), dorF = $('dorDisplay');
+  dojF.disabled = !dobSet;
+  dojF.placeholder = dobSet ? 'DD/MM/YYYY' : 'Enter Date of Birth first';
+  dorF.disabled = !dojSet;
+  dorF.placeholder = dojSet ? 'DD/MM/YYYY' : 'Enter Date of Joining first';
+}
+$('dob').addEventListener('change', updateDateFieldLocks);
+$('doj').addEventListener('change', updateDateFieldLocks);
+updateDateFieldLocks();
 
 // ---------------------------------------------------------------------
 // Photo capture (camera + gallery)
@@ -766,16 +825,7 @@ $('photoRemoveBtn').addEventListener('click', ()=>{
 // ---------------------------------------------------------------------
 let sigDataUrl = null;
 
-$('tabDraw').addEventListener('click', ()=>{
-  $('tabDraw').classList.add('active'); $('tabUpload').classList.remove('active');
-  $('sigDrawPane').style.display='block'; $('sigUploadPane').style.display='none';
-});
-$('tabUpload').addEventListener('click', ()=>{
-  $('tabUpload').classList.add('active'); $('tabDraw').classList.remove('active');
-  $('sigUploadPane').style.display='block'; $('sigDrawPane').style.display='none';
-});
-
-// Signature: upload + crop pane
+// Signature options 2 & 3: take photo of paper signature / upload image — both crop
 $('sigTakeBtn').addEventListener('click', ()=> $('sigCaptureInput').click());
 $('sigUploadBtn').addEventListener('click', ()=> $('sigGalleryInput').click());
 [$('sigCaptureInput'), $('sigGalleryInput')].forEach(inp=>{
@@ -1110,6 +1160,7 @@ function resetEntireForm(){
   sigDataUrl = null; $('sigPreview').style.display='none'; $('sigRemoveRow').style.display='none';
   populateStates();
   refreshDateHints();
+  updateDateFieldLocks();
   document.querySelectorAll('.errtext.show').forEach(e=>e.classList.remove('show'));
   document.querySelectorAll('.warn.show').forEach(e=>e.classList.remove('show'));
   $('submitMsgs').innerHTML = '';
