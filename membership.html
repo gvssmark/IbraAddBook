@@ -98,7 +98,6 @@
   #dataSummary .thumbrow .cap { font-size:11px; color:#888; margin-top:3px; }
   .msg-error { color:var(--err); font-size:13px; margin-top:8px; white-space:pre-wrap; }
   .msg-ok { color:var(--ok); font-size:13px; margin-top:8px; }
-  #successBanner { display:none; text-align:center; font-size:16px; font-weight:bold; color:var(--ok); background:#e6f4ea; border-color:#bfe3c9; }
   #toast { position:fixed; bottom:16px; left:50%; transform:translateX(-50%); background:#222; color:#fff; padding:10px 18px; border-radius:20px; font-size:13px; z-index:999; opacity:0; pointer-events:none; transition:opacity .25s; }
   #toast.show { opacity:1; }
 </style>
@@ -111,8 +110,6 @@
 </header>
 
 <main>
-
-  <div class="card" id="successBanner">✅ Data sent successfully</div>
 
   <form id="enrollForm">
   <div id="formCards">
@@ -359,6 +356,16 @@
       <button type="button" class="btn secondary" id="dateCancelBtn">Cancel</button>
       <button type="button" class="btn" id="dateDoneBtn">Done</button>
     </div>
+  </div>
+</div>
+
+<!-- Submission confirmation (blocks the reset form until dismissed) -->
+<div class="modal-overlay" id="submittedModal" style="display:none;">
+  <div class="modal-box" style="max-width:300px; text-align:center;">
+    <div style="font-size:42px; line-height:1; margin-bottom:10px;">✅</div>
+    <h3 style="margin:0 0 8px;">Data Submitted</h3>
+    <p class="hint" style="margin:0 0 18px;">The enrollment form has been sent. Tap OK to start a new entry.</p>
+    <button type="button" class="btn" id="submittedOkBtn" style="width:100%;">OK</button>
   </div>
 </div>
 
@@ -1183,10 +1190,11 @@ function resetEntireForm(){
 function finishSend(){
   showForm();
   resetEntireForm();
-  $('successBanner').style.display = 'block';
   window.scrollTo({top:0,behavior:'smooth'});
-  setTimeout(()=>{ $('successBanner').style.display='none'; }, 6000);
+  $('submittedModal').style.display = 'flex';
 }
+
+$('submittedOkBtn').addEventListener('click', ()=>{ $('submittedModal').style.display = 'none'; });
 
 $('whatsappBtn').addEventListener('click', ()=>{
   if(!lastPdfBlob){ toast('Generate the PDF first.'); return; }
