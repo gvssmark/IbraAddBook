@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>PDF + WhatsApp Share</title>
+
+    <!-- jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 25px;
+            padding: 14px;
+            font-size: 17px;
+            border: 0;
+            border-radius: 6px;
+            background: #25D366;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #status {
+            margin-top: 15px;
+            text-align: center;
+            color: #555;
+            white-space: pre-wrap;
+        }
+
+        .preview {
+            margin-top: 20px;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 6px;
+            word-break: break-all;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>Form → PDF → WhatsApp</h2>
+
+    <form id="myForm">
+
+        <label for="name">Name</label>
+        <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="Enter name"
+            required
+        >
+
+        <label for="phone">Phone</label>
+        <input
+            type="tel"
+            id="phone"
+            name="phone"
+            placeholder="Enter phone"
+            required
+        >
+
+        <label for="amount">Amount</label>
+        <input
+            type="number"
+            id="amount"
+            name="amount"
+            placeholder="Enter amount"
+            required
+        >
+
+        <button type="submit">
+            📄 Share PDF on WhatsApp
+        </button>
+
+    </form>
+
+    <div class="preview">
+        <strong>WhatsApp data:</strong>
+        <div id="messagePreview"></div>
+    </div>
+
+    <div id="status"></div>
+
+</div>
+
+
+<script>
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("myForm");
+
+    const messagePreview =
+        document.getElementById("messagePreview");
+
+    const status =
+        document.getElementById("status");
+
+
+    /*
+     * Create the ^ separated WhatsApp message.
+     *
+     * Example:
+     *
+     * Ravi^9876543210^5000
+     */
+    function createMessage() {
+
+        const name =
+            document.getElementById("name").value.trim();
+
+        const phone =
+            document.getElementById("phone").value.trim();
+
+        const amount =
+            document.getElementById("amount").value.trim();
+
+
+        return [
+            name,
+            phone,
+            amount
+        ].join("^");
+    }
+
+
+    /*
+     * Show the ^ separated data as the user types.
+     */
+    function updatePreview() {
+
+        messagePreview.textContent =
+            createMessage();
+    }
+
+
+    form.addEventListener("input", updatePreview);
+
+
+    /*
+     * Generate PDF.
+     */
+    function generatePDF() {
+
+        const { jsPDF } = window.jspdf;
+
+        const name =
+            document.getElementById("name").value.trim();
+
+        const phone =
+            document.getElementById("phone").value.trim();
+
+        const amount =
+            document.getElementById("amount").value.trim();
+
+
+        const pdf = new jsPDF();
+
+
+        // Title
+        pdf.setFontSize(20);
+        pdf.text("Form Details", 20, 25);
+
+
+        // Line
+        pdf.setLineWidth(0.5);
+        pdf.line(20, 30, 190, 30);
+
+
+        // Form values
+        pdf.setFontSize(12);
+
+        pdf.text(
+            "Name:",
+            20,
+            45
+        );
+
+        pdf.text(
+            name,
+            60,
+            45
+        );
+
+
+        pdf.text(
+            "Phone:",
+            20,
+            55
+        );
+
+        pdf.text(
+            phone,
+            60,
+            55
+        );
+
+
+        pdf.text(
+            "Amount:",
+            20,
+            65
+        );
+
+        pdf.text(
+            amount,
+            60,
+            65
+        );
+
+
+        // Return PDF as Blob
+        return pdf.output("blob");
+    }
+
+
+    /*
+     * Share PDF + message.
+     */
+    async function sharePDF() {
+
+        status.textContent = "Generating PDF...";
+
+
+        try {
+
+            /*
+             * Create ^ separated message.
+             */
+            const message =
+                createMessage();
+
+
+            /*
+             * Generate PDF.
+             */
+            const pdfBlob =
+                generatePDF();
+
+
+            /*
+             * Convert Blob to File.
+             */
+            const pdfFile =
+                new File(
+                    [pdfBlob],
+                    "form-details.pdf",
+                    {
+                        type: "application/pdf"
+                    }
+                );
+
+
+            /*
+             * Check Web Share support.
+             */
+            if (!navigator.share) {
+
+                status.textContent =
+                    "Sharing is not supported in this browser.";
+
+                return;
+            }
+
+
+            /*
+             * Data to share.
+             */
+            const shareData = {
+
+                text: message,
+
+                files: [
+                    pdfFile
+                ]
+            };
+
+
+            /*
+             * Check whether this browser can
+             * share this particular file.
+             */
+            if (
+                navigator.canShare &&
+                !navigator.canShare(shareData)
+            ) {
+
+                status.textContent =
+                    "This browser cannot share the PDF.";
+
+                return;
+            }
+
+
+            status.textContent =
+                "Opening share menu...";
+
+
+            /*
+             * IMPORTANT:
+             *
+             * This must happen as a result of
+             * the user's button click.
+             */
+            await navigator.share(shareData);
+
+
+            status.textContent =
+                "Shared successfully.";
+
+        }
+        catch (error) {
+
+            console.error(error);
+
+
+            /*
+             * User closed the share sheet.
+             */
+            if (error.name === "AbortError") {
+
+                status.textContent =
+                    "Sharing cancelled.";
+
+                return;
+            }
+
+
+            status.textContent =
+                "Unable to share the PDF.\n" +
+                error.message;
+        }
+    }
+
+
+    /*
+     * Form submit.
+     */
+    form.addEventListener(
+        "submit",
+        async function (event) {
+
+            event.preventDefault();
+
+            await sharePDF();
+        }
+    );
+
+
+    /*
+     * Initial preview.
+     */
+    updatePreview();
+
+});
+
+</script>
+
+</body>
+</html>
