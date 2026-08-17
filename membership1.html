@@ -57,7 +57,7 @@
   .sig-fs-hint { flex:0 0 auto; text-align:center; font-size:12px; color:#888; padding:6px 10px; }
   #sigFsCanvas { flex:1 1 auto; min-height:0; min-width:0; width:100%; touch-action:none; background:#fff; display:block; }
   .sig-fs-actions { flex:0 0 auto; display:flex; gap:10px; padding:10px; justify-content:center; border-top:1px solid var(--border); }
-  .sig-fs-actions button { flex:1; max-width:220px; padding:14px; font-size:15px; }
+  .sig-fs-actions button { flex:1; max-width:180px; padding:14px; font-size:15px; }
 
   /* crop modal */
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:500; padding:14px; }
@@ -314,6 +314,7 @@
   <div class="sig-fs-hint">For a clearer signature, rotate your device to landscape.</div>
   <canvas id="sigFsCanvas"></canvas>
   <div class="sig-fs-actions">
+    <button type="button" class="btn secondary" id="sigFsCancel">Cancel</button>
     <button type="button" class="btn secondary" id="sigFsClear">Clear</button>
     <button type="button" class="btn" id="sigFsAccept">Accept</button>
   </div>
@@ -887,24 +888,12 @@ function openSignaturePad(){
   document.querySelector('header').style.display = 'none';
   $('sigFullscreen').style.display = 'flex';
   requestAnimationFrame(()=>{ resetSigFsCanvas(); });
-
-  // Request fullscreen + landscape lock slightly after the pad is already
-  // visible — on Android, requesting it immediately can freeze the paint
-  // until the rotation transition finishes, delaying the buttons. iOS has
-  // no Fullscreen API for regular elements, so this never runs there.
-  setTimeout(()=>{
-    const el = document.documentElement;
-    const reqFs = el.requestFullscreen || el.webkitRequestFullscreen;
-    try{
-      if(reqFs){
-        reqFs.call(el).then(()=>{
-          if(screen.orientation && screen.orientation.lock){
-            screen.orientation.lock('landscape').catch(()=>{});
-          }
-        }).catch(()=>{});
-      }
-    }catch(err){ /* orientation lock unsupported on this device — hint text guides manual rotation */ }
-  }, 200);
+  // No automatic fullscreen/orientation-lock request — that native rotation
+  // transition itself takes several seconds on some Android devices, which
+  // can't be hidden by delaying when it's requested. The pad now opens
+  // instantly everywhere; rotate the device by hand for the wider view
+  // (the hint text above prompts this, and the canvas resizes cleanly,
+  // preserving any strokes already drawn).
 }
 
 function closeSignaturePad(){
@@ -952,6 +941,7 @@ window.addEventListener('resize', ()=>{
   }, 350);
 });
 
+$('sigFsCancel').addEventListener('click', ()=>{ closeSignaturePad(); });
 $('sigFsClear').addEventListener('click', ()=>{ resetSigFsCanvas(); });
 
 $('sigFsAccept').addEventListener('click', ()=>{
