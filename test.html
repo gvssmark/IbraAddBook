@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>PDF + WhatsApp Share</title>
 
     <!-- jsPDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"
+        crossorigin="anonymous">
+    </script>
 
     <style>
         * {
@@ -24,11 +29,11 @@
 
         .container {
             max-width: 500px;
-            margin: 0 auto;
-            background: #ffffff;
+            margin: auto;
+            background: white;
             padding: 25px;
             border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,.1);
         }
 
         h2 {
@@ -56,22 +61,20 @@
             margin-top: 25px;
             padding: 14px;
             font-size: 17px;
-            border: 0;
-            border-radius: 6px;
+            border: none;
+            border-radius: 7px;
             background: #25D366;
             color: white;
             font-weight: bold;
-            cursor: pointer;
         }
 
-        button:active {
-            transform: scale(0.98);
+        button:disabled {
+            background: #999;
         }
 
         #status {
             margin-top: 15px;
             text-align: center;
-            color: #555;
             white-space: pre-wrap;
         }
 
@@ -94,41 +97,38 @@
 
     <form id="myForm">
 
-        <label for="name">Name</label>
+        <label>Name</label>
         <input
-            type="text"
             id="name"
-            name="name"
-            placeholder="Enter name"
+            type="text"
             required
         >
 
-        <label for="phone">Phone</label>
+        <label>Phone</label>
         <input
-            type="tel"
             id="phone"
-            name="phone"
-            placeholder="Enter phone"
+            type="tel"
             required
         >
 
-        <label for="amount">Amount</label>
+        <label>Amount</label>
         <input
-            type="number"
             id="amount"
-            name="amount"
-            placeholder="Enter amount"
+            type="number"
             required
         >
 
-        <button type="submit">
-            📄 Share PDF on WhatsApp
+        <button
+            id="shareButton"
+            type="submit"
+        >
+            📄 Share PDF
         </button>
 
     </form>
 
     <div class="preview">
-        <strong>WhatsApp data:</strong>
+        <strong>Message:</strong>
         <div id="messagePreview"></div>
     </div>
 
@@ -139,55 +139,96 @@
 
 <script>
 
-document.addEventListener("DOMContentLoaded", function () {
+/*
+ * Wait until the page has loaded.
+ */
+window.addEventListener("load", function () {
 
-    const form = document.getElementById("myForm");
+    const form =
+        document.getElementById("myForm");
 
-    const messagePreview =
-        document.getElementById("messagePreview");
+    const button =
+        document.getElementById("shareButton");
 
     const status =
         document.getElementById("status");
 
+    const preview =
+        document.getElementById("messagePreview");
+
 
     /*
-     * Create the ^ separated WhatsApp message.
+     * Verify that jsPDF actually loaded.
+     */
+    if (
+        !window.jspdf ||
+        !window.jspdf.jsPDF
+    ) {
+
+        status.textContent =
+            "ERROR: jsPDF failed to load.\n\n" +
+            "Check your internet connection and " +
+            "make sure the jsPDF CDN is accessible.";
+
+        button.disabled = true;
+
+        return;
+    }
+
+
+    /*
+     * Get form values.
+     */
+    function getValues() {
+
+        return {
+            name:
+                document.getElementById("name")
+                    .value.trim(),
+
+            phone:
+                document.getElementById("phone")
+                    .value.trim(),
+
+            amount:
+                document.getElementById("amount")
+                    .value.trim()
+        };
+    }
+
+
+    /*
+     * Create ^ separated message.
      *
      * Example:
-     *
      * Ravi^9876543210^5000
      */
     function createMessage() {
 
-        const name =
-            document.getElementById("name").value.trim();
-
-        const phone =
-            document.getElementById("phone").value.trim();
-
-        const amount =
-            document.getElementById("amount").value.trim();
-
+        const data = getValues();
 
         return [
-            name,
-            phone,
-            amount
+            data.name,
+            data.phone,
+            data.amount
         ].join("^");
     }
 
 
     /*
-     * Show the ^ separated data as the user types.
+     * Update preview.
      */
     function updatePreview() {
 
-        messagePreview.textContent =
+        preview.textContent =
             createMessage();
     }
 
 
-    form.addEventListener("input", updatePreview);
+    form.addEventListener(
+        "input",
+        updatePreview
+    );
 
 
     /*
@@ -195,33 +236,53 @@ document.addEventListener("DOMContentLoaded", function () {
      */
     function generatePDF() {
 
-        const { jsPDF } = window.jspdf;
-
-        const name =
-            document.getElementById("name").value.trim();
-
-        const phone =
-            document.getElementById("phone").value.trim();
-
-        const amount =
-            document.getElementById("amount").value.trim();
+        /*
+         * IMPORTANT:
+         *
+         * jsPDF is inside window.jspdf
+         */
+        const jsPDF =
+            window.jspdf.jsPDF;
 
 
-        const pdf = new jsPDF();
+        const data =
+            getValues();
 
 
-        // Title
+        const pdf =
+            new jsPDF();
+
+
+        /*
+         * PDF title
+         */
         pdf.setFontSize(20);
-        pdf.text("Form Details", 20, 25);
+
+        pdf.text(
+            "Form Details",
+            20,
+            25
+        );
 
 
-        // Line
+        /*
+         * Separator
+         */
         pdf.setLineWidth(0.5);
-        pdf.line(20, 30, 190, 30);
+
+        pdf.line(
+            20,
+            30,
+            190,
+            30
+        );
 
 
-        // Form values
+        /*
+         * Data
+         */
         pdf.setFontSize(12);
+
 
         pdf.text(
             "Name:",
@@ -230,7 +291,7 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         pdf.text(
-            name,
+            data.name,
             60,
             45
         );
@@ -243,7 +304,7 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         pdf.text(
-            phone,
+            data.phone,
             60,
             55
         );
@@ -256,43 +317,46 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         pdf.text(
-            amount,
+            data.amount,
             60,
             65
         );
 
 
-        // Return PDF as Blob
+        /*
+         * Generate Blob.
+         */
         return pdf.output("blob");
     }
 
 
     /*
-     * Share PDF + message.
+     * Share PDF.
      */
     async function sharePDF() {
 
-        status.textContent = "Generating PDF...";
-
-
         try {
 
+            status.textContent =
+                "Generating PDF...";
+
+
             /*
-             * Create ^ separated message.
+             * Create message.
              */
             const message =
                 createMessage();
 
 
             /*
-             * Generate PDF.
+             * Generate PDF Blob.
              */
             const pdfBlob =
                 generatePDF();
 
 
             /*
-             * Convert Blob to File.
+             * Convert Blob → File.
              */
             const pdfFile =
                 new File(
@@ -305,19 +369,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
             /*
-             * Check Web Share support.
+             * Check Web Share.
              */
             if (!navigator.share) {
 
-                status.textContent =
-                    "Sharing is not supported in this browser.";
-
-                return;
+                throw new Error(
+                    "Web Share API is not supported " +
+                    "by this browser."
+                );
             }
 
 
             /*
-             * Data to share.
+             * Share data.
              */
             const shareData = {
 
@@ -330,18 +394,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
             /*
-             * Check whether this browser can
-             * share this particular file.
+             * Check file sharing support.
              */
             if (
                 navigator.canShare &&
                 !navigator.canShare(shareData)
             ) {
 
-                status.textContent =
-                    "This browser cannot share the PDF.";
-
-                return;
+                throw new Error(
+                    "This browser cannot share " +
+                    "PDF files."
+                );
             }
 
 
@@ -352,25 +415,33 @@ document.addEventListener("DOMContentLoaded", function () {
             /*
              * IMPORTANT:
              *
-             * This must happen as a result of
-             * the user's button click.
+             * This runs directly from the user's
+             * button/form action.
              */
-            await navigator.share(shareData);
+            await navigator.share(
+                shareData
+            );
 
 
             status.textContent =
-                "Shared successfully.";
+                "PDF shared successfully.";
 
-        }
-        catch (error) {
 
-            console.error(error);
+        } catch (error) {
+
+            console.error(
+                "Share error:",
+                error
+            );
 
 
             /*
-             * User closed the share sheet.
+             * User cancelled share sheet.
              */
-            if (error.name === "AbortError") {
+            if (
+                error.name ===
+                "AbortError"
+            ) {
 
                 status.textContent =
                     "Sharing cancelled.";
@@ -380,7 +451,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
             status.textContent =
-                "Unable to share the PDF.\n" +
+                "Unable to share the PDF.\n\n" +
                 error.message;
         }
     }
