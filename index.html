@@ -13,6 +13,12 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="IBRA">
+  <!-- Firebase (Realtime Database) - read-only from the browser.
+       This web config is not secret; it only identifies which Firebase
+       project/app to talk to. All writes happen from Apps Script using a
+       service account, never from this page. -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-database-compat.js"></script>
   <style>
     /* ===== Design tokens =====
        Institutional navy + brass passbook-stamp gold, echoing a bank
@@ -99,13 +105,6 @@
     }
     #myInput:focus{border-color:var(--gold)}
     #datadate{font-size:11px;color:#dfe7f2;text-align:center;padding:2px 0 0}
-    #loader{
-      display:block;text-align:center;font-size:12px;font-weight:700;
-      background:var(--navy-dark);color:#fff;padding:3px 0;
-      animation:flashText .8s infinite;
-    }
-    #loader::before{content:"Updating Data";}
-    @keyframes flashText{0%,100%{color:#fff}50%{color:var(--gold)}}
     #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0; display:none;}
 
     /* ---- Hamburger drawer (constrained to the app's own column, even
@@ -230,6 +229,8 @@
     .card-row .k{color:var(--muted);flex:0 0 40%}
     .card-row .v{flex:1;text-align:right;color:var(--ink)}
     .card-row .v a{color:var(--navy);font-weight:600}
+    .card-row .v.row-triplet{display:flex;justify-content:flex-end;gap:2px}
+    .card-row .v.row-triplet span:not(:last-child)::after{content:" / ";color:var(--muted);margin:0 2px}
     .card-section.fampen{background:#fdf7e6;border-radius:10px;padding:8px 10px;border:1px solid #f1e0a6}
 
     button{background:var(--gold);color:#1a1200;border:0;width:170px;padding:9px;border-radius:15px;box-shadow:0 2px 0 #96760f;margin-left:5px}
@@ -243,7 +244,6 @@
     <button class="hamburger" aria-label="Open regions menu" onclick="toggleDrawer()">&#9776;</button>
     <h1>Indian Bank Retirees' Association</h1>
   </div>
-  <span id="loader"></span>
   <div class="subbar">
     <h4 id="regionHeading">Members in </h4>
     <input type="text" id="myInput" placeholder="Search here..." onkeyup="fiterName()">
@@ -523,31 +523,76 @@ async function prunePhotoCache(currentAddBookData) {
   }
 }
 
+//==== Data source switch ====
+// 'firebase' is the live path. 'appsscript' is kept working as a manual
+// fallback - if Firebase ever has a problem, change this one line (and
+// nothing else) to instantly revert the site to the old data path.
+const DATA_SOURCE = 'firebase';
+
+//==== Firebase (Realtime Database) - read-only client ====
+// >>> Fill these in from Firebase Console > Project settings > General >
+// Your apps > (web app) > SDK setup and configuration. These values are not
+// secret - they only say which Firebase project to read from; actual
+// access is governed by the Realtime Database security rules (public read,
+// no public write - see the rules snippet provided alongside this file). <<<
+const firebaseConfig = {
+  apiKey: "AIzaSyC1SPhkbRotazap4JSZIABbGWc7zf2HttI",
+  authDomain: "ibra-baf92.firebaseapp.com",
+  databaseURL: "https://ibra-baf92-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ibra-baf92",
+};
+let fbDb = null;
+function getFirebaseDb() {
+  if (!fbDb) {
+    firebase.initializeApp(firebaseConfig);
+    fbDb = firebase.database();
+  }
+  return fbDb;
+}
+
 //==== Fetch Data Functions ====
 async function fetchJson(url) {
   const res = await fetch(url, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Fetch failed: ${url}`);
   return await res.json();
 }
-async function fetchLatestTimestamp() {
-  const url = 'https://script.google.com/macros/s/AKfycbwo-TtPn3DAjHSPCXDwPFerT36QyfPPvUTi7uQEvcmjJso_aWpaKefUsgx_vpJOowHUgg/exec?sheetid=1MaB1PMP3ouY3Es5ziLgY7dhT3ZSb6oHRgecw3JiJfGw&sheetname=Sheet1';
-  const res = await fetch(url, { cache: 'no-store' });
-  const text = (await res.text()).trim();
-  try {
-    const parsed = JSON.parse(text);
-    return Array.isArray(parsed) ? parsed.flat(Infinity)[0] : parsed;
-  } catch {
-    return text;
-  }
-}
-async function fetchAddBookData() {
+
+// -- Apps Script path (manual fallback, unchanged from before) --
+async function fetchAddBookRows_AppsScript() {
   const url = 'https://script.google.com/macros/s/AKfycbwIVAlRrCTt6z_Ej4W6PHhopFqCq1JvEsSoN2RPqgWY7VXLW0P2pteA1jgVFaWePc2S/exec';
-  let data = await fetchJson(url);
-  data.shift(); // remove header
-  let formatted = data.map(([id, name, add1, add2, add3, district, place, pincode, fixed, mobile1, mobile2, state, email, srno, sbac, doj, dor, spname, area, blank1, dob, fampen, pensionbr, scanned, newempid, dod, photoid, blank3, blank4]) => ({
-    id: Number(id), name, add1, add2, add3, district, place, pincode, fixed, mobile1, mobile2, state, email, srno, sbac,
-    doj: ddmmyy(doj), dor: ddmmyy(dor), spname, area, blank1, dob: ddmmyy(dob), fampen, pensionbr, scanned, newempid, dod: ddmmyy(dod),
-    photoid, blank3, blank4
+  return await fetchJson(url);
+}
+// Old endpoint returns a plain array-of-arrays with a header row first -
+// convert it into the same "named-field record" shape Firebase already
+// stores, so both sources share one formatting step below.
+function appsScriptRowsToRecords_(rows) {
+  rows = rows.slice();
+  rows.shift(); // remove header
+  return rows.map(([id, name, add1, add2, add3, district, place, pincode, fixed, mobile1, mobile2, state, email, srno, sbac, doj, dor, spname, area, blank1, dob, fampen, pensionbr, scanned, newempid, dod, photoid, blank3, blank4]) => ({
+    id, name, add1, add2, add3, district, place, pincode, fixed, mobile1, mobile2, state, email, srno, sbac,
+    doj, dor, spname, area, blank1, dob, fampen, pensionbr, scanned, newempid, dod, photoid, blank3, blank4
+  }));
+}
+
+// -- Firebase path (live default) --
+// ibra/addbook is an object keyed by "m<MembershipNo>", each value already
+// a named-field record (see ibra-firebase-sync.gs) - this is what makes
+// per-row updates/deletes on the Apps Script side possible.
+async function fetchAddBookRows_Firebase() {
+  const snap = await getFirebaseDb().ref('ibra/addbook').get();
+  if (!snap.exists()) throw new Error('No data at ibra/addbook in Firebase');
+  return Object.values(snap.val());
+}
+
+async function fetchAddBookData() {
+  const records = DATA_SOURCE === 'firebase'
+    ? await fetchAddBookRows_Firebase()
+    : appsScriptRowsToRecords_(await fetchAddBookRows_AppsScript());
+
+  let formatted = records.map(r => ({
+    ...r,
+    id: Number(r.id),
+    doj: ddmmyy(r.doj), dor: ddmmyy(r.dor), dob: ddmmyy(r.dob), dod: ddmmyy(r.dod),
   }));
   const totalBefore = formatted.length;
   formatted = formatted.filter(r => !isNaN(r.id));
@@ -560,96 +605,50 @@ async function fetchAddBookData() {
 }
 
 //==== Report Renderer ====
-function showReport(addBookData, source, serverTimestamp) {
-  document.getElementById("DataLoadedFrom").textContent = `Report from: ${source} - ${formatDate(serverTimestamp-(5.5*60*60*1000))}`;
+function showReport(addBookData) {
   processData(addBookData);
   console.log(activeMembers)
 }
 
-// One-time migration for users still on the old version, which stored the
-// timestamp in localStorage and the actual data in the Cache API.
-const LEGACY_MIGRATION_FLAG = 'migratedFromLocalStorage_v1';
-const LEGACY_CACHE_NAME = 'addbook';
-
-async function migrateLegacyStorage() {
-  try {
-    const alreadyMigrated = await idbGetMeta(LEGACY_MIGRATION_FLAG);
-    if (alreadyMigrated) return;
-  } catch (err) {
-    console.warn('Could not check migration flag, proceeding cautiously:', err);
-  }
-
-  try {
-    const legacyTimestamp = localStorage.getItem('data_updated_at');
-    if (legacyTimestamp) {
-      const existing = await idbGetMeta('data_updated_at');
-      if (!existing) {
-        await idbSetMeta('data_updated_at', legacyTimestamp);
-        console.log('Migrated data_updated_at from localStorage to IndexedDB');
-      }
-      localStorage.removeItem('data_updated_at');
-    }
-  } catch (err) {
-    console.warn('Legacy localStorage migration skipped:', err);
-  }
-
-  try {
-    const existingAddbook = await idbGetAll('addbook');
-    if ((!existingAddbook || !existingAddbook.length) && 'caches' in window) {
-      const cache = await caches.open(LEGACY_CACHE_NAME);
-      const addbookResp = await cache.match('/custom/addbookdata.json');
-      if (addbookResp && addbookResp.ok) {
-        const oldAddbook = await addbookResp.json();
-        if (Array.isArray(oldAddbook) && oldAddbook.length) {
-          const normalized = oldAddbook.map(r => ({ ...r, id: Number(r.id) })).filter(r => !isNaN(r.id));
-          await idbPutAll('addbook', normalized);
-          console.log('Migrated', normalized.length, 'addbook records from Cache API to IndexedDB');
-        }
-      }
-      await caches.delete(LEGACY_CACHE_NAME);
-    }
-  } catch (err) {
-    console.warn('Legacy Cache API migration skipped:', err);
-  }
-
-  await idbSetMeta(LEGACY_MIGRATION_FLAG, true);
+// Stamps the current moment as the "freshness" display. Deliberately not
+// tied to any value from the server - Firebase reads happen on every load
+// anyway, so "now" is an honest enough answer to "how current is this".
+function stampDataAsOfNow() {
+  document.getElementById("datadate").style.display = "block";
+  document.getElementById("datadate").textContent =
+    "Updated " + new Date().toLocaleString('en-GB', { timeZone: 'Asia/Kolkata' });
 }
 
 async function initReport() {
-  await migrateLegacyStorage();
-
+  // 1. Render instantly from whatever's cached, so there's something on
+  // screen immediately (and so the app still works at all with no
+  // connection) - no loading indicator needed for this step.
   let addBookData = await idbGetAll('addbook');
-  let localTimestamp = await idbGetMeta("data_updated_at");
-
-  if (addBookData && addBookData.length && localTimestamp) {
-    showReport(addBookData, "Saved & Latest", localTimestamp);
+  if (addBookData && addBookData.length) {
+    showReport(addBookData);
   } else {
-    document.getElementById("DataLoadedFrom").textContent = "No cache, waiting for server...";
+    document.getElementById("DataLoadedFrom").style.display = "block";
+    document.getElementById("DataLoadedFrom").textContent = "Loading…";
   }
 
+  // 2. Always fetch fresh in the background and re-render - with Firebase
+  // this is normally well under 3 seconds, so there's no need to check
+  // "has anything changed" first the way the old Apps Script path did.
   try {
-    const serverTimestamp = await fetchLatestTimestamp();
-    localTimestamp = await idbGetMeta("data_updated_at");
-
-    if (!addBookData.length || localTimestamp != serverTimestamp) {
-      addBookData = await fetchAddBookData();
-      await idbSetMeta("data_updated_at", serverTimestamp);
-      showReport(addBookData, "Server (updated)", serverTimestamp);
-      showUpdateModal("📢 Latest Data Loaded ");
-    }
-    document.getElementById("loader").style.display = "none"
-    document.getElementById("datadate").style.display = "block"
-    document.getElementById("datadate").innerHTML = new Date().toLocaleString('en-GB', {timeZone: 'Asia/Kolkata'})
+    addBookData = await fetchAddBookData();
+    showReport(addBookData);
+    document.getElementById("DataLoadedFrom").style.display = "none";
+    stampDataAsOfNow();
   } catch (err) {
-    console.error("Background refresh failed", err);
-    document.getElementById("loader").style.display = "none"
+    console.error("Data refresh failed", err);
+    if (!addBookData || !addBookData.length) {
+      document.getElementById("DataLoadedFrom").style.display = "block";
+      document.getElementById("DataLoadedFrom").textContent = "Could not load data. Check your connection and reload.";
+    }
+    // If step 1 already rendered something from cache, leave it showing as-is.
   }
 }
-initReport().catch(err => {
-  console.error('initReport failed:', err);
-  document.getElementById("loader").style.display = "none";
-  document.getElementById("DataLoadedFrom").textContent = "Could not load data. Please reload the page.";
-});
+initReport();
 
 function processData(addBookData) {
   console.log(addBookData);
@@ -816,7 +815,7 @@ async function nameclick(membershipNo) {
     <div class="card-row"><span class="k">Pension Br</span><span class="v">${membData.pensionbr}</span></div>
     <div class="card-row"><span class="k">Pension Acc</span><span class="v">${membData.sbac}</span></div>
     <div class="card-row"><span class="k">Application Scanned</span><span class="v">${membData.scanned}</span></div>
-    <div class="card-row"><span class="k">DOB / DOJ / DOR:</span><span class="v">  ${membData.dob} * ${membData.doj} * ${membData.dor} </span></div>
+    <div class="card-row"><span class="k">DOB / DOJ / DOR</span><span class="v row-triplet"><span>${membData.dob}</span><span>${membData.doj}</span><span>${membData.dor}</span></span></div>
     <div class="card-row"><span class="k">Spouse Name</span><span class="v">${membData.spname}</span></div>
   </div>`;
 
