@@ -64,17 +64,3 @@ self.addEventListener("fetch", (event) => {
 });
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
