@@ -104,7 +104,7 @@
       background:#fff;padding:0 16px;font-size:15px;outline:0;display:block;
     }
     #myInput:focus{border-color:var(--gold)}
-    #datadate{font-size:11px;color:#dfe7f2;text-align:center;padding:2px 0 0}
+    #datadate{font-size:10px;color:red;text-align:center;padding:2px 0 0}
     #DataLoadedFrom{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0; display:none;}
 
     /* ---- Hamburger drawer (constrained to the app's own column, even
@@ -250,7 +250,7 @@
   <div class="subbar">
     <h4 id="regionHeading">Members in </h4>
     <input type="text" id="myInput" placeholder="Search here..." onkeyup="fiterName()">
-    <div id="datadate" style="display:none"></div>
+    <div id="datadate" style="display:block">Data as on </div>
   </div>
 </div>
 
@@ -819,7 +819,7 @@ async function nameclick(membershipNo) {
     <div class="card-row"><span class="k">Pension Acc</span><span class="v">${membData.sbac}</span></div>
     <div class="card-row"><span class="k">Application Scanned</span><span class="v">${membData.scanned}</span></div>
     <div class="card-row triplet-row">
-      <span class="k">DOB / DOJ / DOR</span>
+      
       <div class="date-boxes">
         <div class="date-box"><span class="date-box-label">DOB</span><span class="date-box-value">${membData.dob}</span></div>
         <div class="date-box"><span class="date-box-label">DOJ</span><span class="date-box-value">${membData.doj}</span></div>
