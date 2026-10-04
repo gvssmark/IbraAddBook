@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "ibra": {
+      ".read": true,
+      ".write": false
+    }
+  }
+}

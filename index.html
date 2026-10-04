@@ -229,9 +229,11 @@
     .card-row .k{color:var(--muted);flex:0 0 40%}
     .card-row .v{flex:1;text-align:right;color:var(--ink)}
     .card-row .v a{color:var(--navy);font-weight:600}
-    .card-row.triplet-row{flex-direction:column;align-items:flex-start;gap:4px}
-    .card-row.triplet-row .v.row-triplet{flex:none;width:100%;display:flex;justify-content:flex-start;flex-wrap:wrap;text-align:left;gap:2px}
-    .card-row.triplet-row .v.row-triplet span:not(:last-child)::after{content:" - ";color:var(--muted);margin:0 2px}
+    .card-row.triplet-row{flex-direction:column;align-items:flex-start;gap:6px}
+    .date-boxes{display:flex;gap:8px;width:100%}
+    .date-box{flex:1;min-width:0;background:#f5f1e3;border:1px solid var(--line);border-radius:10px;padding:7px 4px;text-align:center}
+    .date-box-label{display:block;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+    .date-box-value{display:block;font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap}
     .card-section.fampen{background:#fdf7e6;border-radius:10px;padding:8px 10px;border:1px solid #f1e0a6}
 
     button{background:var(--gold);color:#1a1200;border:0;width:170px;padding:9px;border-radius:15px;box-shadow:0 2px 0 #96760f;margin-left:5px}
@@ -248,7 +250,7 @@
   <div class="subbar">
     <h4 id="regionHeading">Members in </h4>
     <input type="text" id="myInput" placeholder="Search here..." onkeyup="fiterName()">
-    <div id="datadate" style="display:block; color:red">Data as on </div>
+    <div id="datadate" style="display:none"></div>
   </div>
 </div>
 
@@ -816,7 +818,14 @@ async function nameclick(membershipNo) {
     <div class="card-row"><span class="k">Pension Br</span><span class="v">${membData.pensionbr}</span></div>
     <div class="card-row"><span class="k">Pension Acc</span><span class="v">${membData.sbac}</span></div>
     <div class="card-row"><span class="k">Application Scanned</span><span class="v">${membData.scanned}</span></div>
-    <div class="card-row triplet-row"><span class="k">DOB - DOJ - DOR</span><span class="v row-triplet"><span>${membData.dob}</span><span>${membData.doj}</span><span>${membData.dor}</span></span></div>
+    <div class="card-row triplet-row">
+      <span class="k">DOB / DOJ / DOR</span>
+      <div class="date-boxes">
+        <div class="date-box"><span class="date-box-label">DOB</span><span class="date-box-value">${membData.dob}</span></div>
+        <div class="date-box"><span class="date-box-label">DOJ</span><span class="date-box-value">${membData.doj}</span></div>
+        <div class="date-box"><span class="date-box-label">DOR</span><span class="date-box-value">${membData.dor}</span></div>
+      </div>
+    </div>
     <div class="card-row"><span class="k">Spouse Name</span><span class="v">${membData.spname}</span></div>
   </div>`;
 
