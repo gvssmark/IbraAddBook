@@ -108,7 +108,6 @@
 </div>
 
 <script src="allowedDate.js"></script>
-<script src="data.js"></script>
 <script>
 (function(){
   const KEY = 'attendance_v1';
@@ -117,7 +116,7 @@
 
   // ---------- Local storage ----------
   // events: { 'YYYY-MM-DD': [{srno,memno,name,mobile,time,isNew}] }   (attendance per occasion)
-  // newMembers: [{srno,name,mobile}]   (members not in data.js)
+  // newMembers: [{srno,name,mobile}]   (members not in the IBRA address book)
   // overrides: { srno: mobile }        (mobile edits for existing members)
   function ymd(d){ const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
   let store = load();
@@ -162,22 +161,53 @@
   let viewDate = null;
   function viewRecs(){ return (viewDate && store.events[viewDate]) || []; }
 
-  // ---------- Member lookup ----------
+  // ---------- Member lookup (read-only from IBRA Address Book's IndexedDB) ----------
+  const IBRA_DB = 'ibraDB', IBRA_STORE = 'addbook';
   const members = new Map(); // srno -> {srno,memno,name,mobile}
-  (function build(){
-    const rows = (typeof data !== 'undefined' && Array.isArray(data)) ? data.slice(1) : [];
-    rows.forEach(r=>{
-      const srno = String(r[3] ?? '').trim();
-      if(!srno) return;
-      members.set(srno, {srno, memno:r[0] ?? '', name:String(r[1] ?? '').trim(), mobile:cleanMobile(r[2])});
+  let dbReady = false;
+
+  function openIbra(){
+    return new Promise((resolve, reject)=>{
+      const req = indexedDB.open(IBRA_DB);                 // no version: never upgrades IBRA's DB
+      req.onupgradeneeded = ev => { ev.target.transaction.abort(); };  // DB doesn't exist yet: don't create an empty one
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('open failed'));
+      req.onblocked = () => reject(new Error('blocked'));
     });
+  }
+
+  async function loadMembers(){
+    members.clear();
+    dbReady = false;
+    try{
+      const db = await openIbra();
+      try{
+        if(!db.objectStoreNames.contains(IBRA_STORE)) throw new Error('store missing');
+        const rows = await new Promise((res, rej)=>{
+          const q = db.transaction(IBRA_STORE, 'readonly').objectStore(IBRA_STORE).getAll();
+          q.onsuccess = () => res(q.result || []);
+          q.onerror = () => rej(q.error);
+        });
+        rows.forEach(r=>{
+          const srno = String(r.srno ?? '').trim();
+          if(!srno || srno === '0') return;
+          members.set(srno, {srno, memno: r.id ?? '', name: String(r.name ?? '').trim(), mobile: cleanMobile(r.mobile1)});
+        });
+      } finally { db.close(); }
+    }catch(err){
+      console.warn('IBRA DB not available:', err && err.message);
+    }
+    dbReady = members.size > 0;
+    // members added through this app (never override a real IBRA member)
     store.newMembers.forEach(m=>{
-      members.set(String(m.srno), {srno:String(m.srno), memno:'', name:m.name, mobile:m.mobile, isNew:true});
+      const k = String(m.srno);
+      if(!members.has(k)) members.set(k, {srno:k, memno:'', name:m.name, mobile:m.mobile, isNew:true});
     });
-  })();
+  }
 
   function cleanMobile(v){
-    return String(v ?? '').replace(/\D/g,'').slice(-10);
+    const s = String(v ?? '').replace(/\D/g,'');
+    return /^0*$/.test(s) ? '' : s.slice(-10);
   }
 
   // ---------- Elements ----------
@@ -374,10 +404,13 @@
   let lastOpen = null;
 
   function applyLock(){
-    const ev = activeEvent(), open = !!ev;
-    if(open){
+    const ev = activeEvent(), open = !!ev && dbReady;
+    if(ev && !dbReady){
+      bannerEl.className = 'banner closed';
+      bannerEl.textContent = 'Member data not found. Open IBRA Address Book once (same browser/app, online), then reload this page.';
+    }else if(open){
       bannerEl.className = 'banner open';
-      bannerEl.textContent = 'Attendance open: ' + (ev.name ? ev.name + ' - ' : '') + fmtDate(ev.date);
+      bannerEl.textContent = 'Attendance open: ' + (ev.name ? ev.name + ' - ' : '') + fmtDate(ev.date) + '  (' + members.size + ' members)';
     }else{
       const nx = nextEvent();
       bannerEl.className = 'banner closed';
@@ -406,10 +439,11 @@
   applyLock();
   refreshSelect();
   render();
+  loadMembers().then(()=>{ applyLock(); onSrnoChange(); });
 
   // Re-check the date regularly (app may stay open past midnight) and when returning to the app
   setInterval(()=>{ applyLock(); refreshSelect(); render(); }, 30000);
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ applyLock(); refreshSelect(); render(); } });
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ loadMembers().then(()=>{ applyLock(); refreshSelect(); render(); }); } });
 })();
 </script>
 <script>

@@ -1,9 +1,8 @@
-// Bump CACHE_VERSION whenever index.html / data.js change to force a refresh.
-const CACHE_VERSION = 'attendance-v4';
+// Bump CACHE_VERSION whenever index.html / sw.js / icons change to force a refresh.
+const CACHE_VERSION = 'attendance-v5';
 const ASSETS = [
   './',
   './index.html',
-  './data.js',
   './allowedDate.js',
   './manifest.json',
   './icons/icon-192.png',
