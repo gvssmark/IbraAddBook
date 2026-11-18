@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IBRA Address Book — Handover Guide</title>
+<style>
+  :root{
+    --navy:#00366b; --navy-dark:#00203f; --gold:#c79a2c;
+    --cream:#faf6ec; --ink:#20262e; --muted:#5b6472; --line:#e3ded0;
+    --warn-bg:#fdf1d6; --warn-border:#e8c766; --ok-bg:#eaf6ee; --ok-border:#8fd3a6;
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--cream); color:var(--ink); margin:0; line-height:1.55;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:0 20px 80px}
+  header{background:var(--navy);color:#fff;padding:36px 20px 28px}
+  header .inner{max-width:760px;margin:0 auto}
+  header h1{margin:0 0 6px;font-size:26px}
+  header p{margin:0;color:#cfe0f2;font-size:14px}
+  h2{
+    color:var(--navy-dark);border-bottom:2px solid var(--gold);
+    padding-bottom:6px;margin-top:48px;font-size:19px;
+  }
+  h3{color:var(--navy-dark);font-size:15px;margin:22px 0 8px}
+  p{margin:8px 0}
+  .muted{color:var(--muted);font-size:13.5px}
+  code{
+    background:#fff; border:1px solid var(--line); border-radius:4px;
+    padding:1px 6px; font-size:13px; font-family:ui-monospace,Consolas,monospace;
+  }
+  pre{
+    background:#1c2530; color:#e7edf5; padding:14px 16px; border-radius:8px;
+    overflow-x:auto; font-size:13px; line-height:1.5;
+  }
+  pre code{background:none;border:none;padding:0;color:inherit}
+  ol,ul{padding-left:22px}
+  li{margin:6px 0}
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:10px;
+    padding:16px 18px; margin:14px 0;
+  }
+  .callout{
+    border-radius:10px; padding:14px 16px; margin:16px 0; font-size:14px;
+  }
+  .callout.warn{background:var(--warn-bg); border:1px solid var(--warn-border)}
+  .callout.ok{background:var(--ok-bg); border:1px solid var(--ok-border)}
+  .callout b{display:block;margin-bottom:4px}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.5px}
+  th,td{border:1px solid var(--line);padding:7px 10px;text-align:left}
+  th{background:#f1ede0;color:var(--navy-dark)}
+  .checklist li{list-style:none;margin:8px 0}
+  .checklist li::before{content:"☐ ";color:var(--gold);font-weight:700;margin-right:4px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:50px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <h1>IBRA Address Book — Ownership Handover Guide</h1>
+    <p>What needs to move to the new owner, and in what order, so syncing never breaks.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <h2>1. How the pieces fit together</h2>
+  <p>Four things make this app work, each owned/controlled separately in Google's systems:</p>
+  <table>
+    <tr><th>Piece</th><th>What it is</th><th>Current identifier</th></tr>
+    <tr><td>Google Sheet</td><td>Where member data is entered/edited</td><td><code>17Tf6EBg-FlyXNhl3INAgp6TvJ5lKyY0Ov-wnD-RN-Vc</code>, tab <code>All Addresses</code></td></tr>
+    <tr><td>Apps Script project</td><td>Standalone script that syncs edits to Firebase</td><td>File: <code>ibra-firebase-sync.gs</code> (not bound to the Sheet)</td></tr>
+    <tr><td>Firebase project</td><td>Realtime Database the website reads from</td><td>Project <code>ibra</code> (id <code>ibra-baf92</code>)</td></tr>
+    <tr><td>Website</td><td>GitHub Pages site + GoDaddy domain</td><td><em>Not covered in detail here — see note at the end.</em></td></tr>
+  </table>
+  <p>Data flow: <b>Sheet edit → Apps Script trigger → Firebase → website reads from Firebase</b> (with a local offline copy cached on each visitor's device).</p>
+
+  <div class="callout warn">
+    <b>⚠ Read this before transferring anything</b>
+    The Apps Script triggers that watch the Sheet for edits run under the identity of whoever clicked "Run" when they were installed — not whoever currently "owns" the Sheet or script file. Transferring <em>ownership</em> of the Sheet or script does <strong>not</strong> automatically move the triggers to the new owner. If the old owner's access is removed before the new owner re-installs the triggers themselves (step 3 below), syncing will silently stop. Follow the order in this guide to avoid any downtime.
+  </div>
+
+  <h2>2. Transfer the Google Sheet</h2>
+  <ol>
+    <li>Open the Sheet → <b>Share</b> button (top right).</li>
+    <li>Add the new owner's Google account if not already a collaborator, with <b>Editor</b> access.</li>
+    <li>Next to their name, open the role dropdown and choose <b>Transfer ownership</b> (or "Make owner", depending on your Drive version). They'll get an email to accept.</li>
+    <li><b>Do not remove your own access yet</b> — keep yourself as at least an Editor until step 3 is fully confirmed working.</li>
+  </ol>
+
+  <h2>3. Transfer the Apps Script project</h2>
+  <p>A standalone Apps Script project is also a Drive file, so the same sharing mechanism applies:</p>
+  <ol>
+    <li>Open the script project at <a href="https://script.google.com">script.google.com</a> → the three-dot menu or <b>Share</b> icon → add the new owner with <b>Editor</b> access, then transfer ownership the same way as the Sheet.</li>
+    <li>
+      <b>Have the new owner personally do this next part</b> (it must run under their own login, that's the whole point):
+      open the script, select <code>installIbraSyncTriggers</code> from the function dropdown, click <b>Run</b>, and approve the authorization prompt under their own Google account.
+      <br><span class="muted">This function already deletes any existing triggers for the same two handler functions before creating new ones, so it's safe to run again — it replaces the old owner's triggers with the new owner's, with no risk of duplicates.</span>
+    </li>
+    <li>Confirm it worked: in the Apps Script editor, left sidebar → <b>Executions</b> — make an edit to any row in the Sheet and confirm a fresh <code>handleEditTrigger</code> entry appears, owned by the new account.</li>
+    <li>Only now is it safe to remove the old owner's access from both the Sheet and the script project, if desired.</li>
+  </ol>
+
+  <div class="callout ok">
+    <b>✓ Good news: Script Properties travel with the project automatically</b>
+    The three Firebase credentials (<code>FIREBASE_DB_URL</code>, <code>FIREBASE_CLIENT_EMAIL</code>, <code>FIREBASE_PRIVATE_KEY</code>) are stored on the script project itself, not tied to a particular person. Whoever has edit access to the script can see/use them — nothing to re-enter here during a script ownership transfer.
+  </div>
+
+  <h2>4. Hand over the Firebase project</h2>
+  <p>Firebase/Google Cloud projects don't have a single "transfer ownership" button the way Drive files do — instead you <em>add</em> the new person as an Owner, then optionally remove yourself once they've confirmed access.</p>
+  <ol>
+    <li>Firebase Console → open project <b>ibra</b> → <b>Project settings</b> (gear icon) → <b>Users and permissions</b> tab.</li>
+    <li>Click <b>Add member</b>, enter the new owner's email, set role to <b>Owner</b>.</li>
+    <li>Ask them to confirm they can see the project at <a href="https://console.firebase.google.com">console.firebase.google.com</a>.</li>
+    <li>Once confirmed, you can remove your own account from the project's permissions if you no longer need access (optional — many people just leave both as Owners).</li>
+  </ol>
+
+  <h3>What about the service account key already in use?</h3>
+  <p>The existing service account (<code>firebase-adminsdk-fbsvc@ibra-baf92.iam.gserviceaccount.com</code>) is a machine identity — it keeps working regardless of which human is "Owner" of the project. You have two reasonable options:</p>
+  <ul>
+    <li><b>Simplest:</b> change nothing. The existing key keeps the sync working under the new ownership with no further action.</li>
+    <li><b>Cleaner for a full handover:</b> have the new owner generate a <em>fresh</em> service account key under their own control (Project settings → Service accounts → Generate new private key), update the three Script Properties in the Apps Script project with the new values, then delete the old key (Google Cloud Console → IAM & Admin → Service Accounts → find the account → Keys tab → delete the old one).</li>
+  </ul>
+  <div class="callout warn">
+    <b>⚠ Never put a private key in an email, chat, or document like this one</b>
+    If you do pass along the existing key file, share it through a secure channel only (password manager, encrypted file transfer) — never as plain email text or pasted into a doc.
+  </div>
+
+  <h2>5. Verify everything after handover</h2>
+  <ul class="checklist">
+    <li>New owner can open the Sheet and the Apps Script project directly (not just via a link you sent).</li>
+    <li>An edit made to a row in <b>All Addresses</b> shows up in Firebase Console → Realtime Database → <code>ibra/addbook</code> within a few seconds.</li>
+    <li>Apps Script → Executions log shows the trigger running under the <em>new</em> owner's account, with no errors.</li>
+    <li>The live website still loads and shows current data.</li>
+  </ul>
+
+  <h2>Not covered here: website hosting and domain</h2>
+  <p class="muted">
+    This guide focuses on the Sheet → Apps Script → Firebase data pipeline, since that's what you asked about. The site itself is hosted on GitHub Pages with a GoDaddy domain pointing at it. If you'd also like a handover section for transferring the GitHub repository and the GoDaddy domain registration, just ask and it can be added as a separate section.
+  </p>
+
+</div>
+
+<footer>Prepared for the IBRA Address Book project. Keep this document itself somewhere private — while it contains no secrets, it does describe exactly how the system is wired together.</footer>
+
+</body>
+</html>
