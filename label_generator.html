@@ -30,6 +30,7 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     padding: 32px 16px 64px;
   }
+  body.lock { overflow: hidden; }
   .wrap { max-width: 760px; margin: 0 auto; }
   h1 { font-size: 22px; margin: 0 0 4px; }
   .sub { color: var(--muted); font-size: 14px; margin: 0 0 28px; }
@@ -74,6 +75,7 @@
     color: var(--ink);
   }
   textarea { min-height: 110px; resize: vertical; }
+  textarea.nums { min-height: 70px; font-size: 14px; }
 
   .row { display:flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .row + .row { margin-top: 12px; }
@@ -138,15 +140,12 @@
     user-select: none;
   }
   .state-chip input { margin: 0; }
-  .state-chip.disabled { opacity: .4; cursor: default; }
 
-  .placeholder-note {
-    font-size: 13px; color: var(--muted);
-  }
+  .placeholder-note { font-size: 13px; color: var(--muted); margin: 10px 0 0; }
 
   .footer-note {
     font-size: 12.5px; color: var(--muted); line-height: 1.6;
-    margin-top: 6px;
+    margin-top: 10px;
   }
   .footer-note b { color: var(--ink); }
 
@@ -155,7 +154,79 @@
     background: #eef2ff; color: #3730a3;
     font-size: 12px; font-weight: 600;
     padding: 2px 9px; border-radius: 999px;
+    text-transform: none; letter-spacing: 0;
   }
+
+  .src-block {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    transition: border-color .15s ease, box-shadow .15s ease;
+  }
+  .src-block.active { border-color: var(--accent); box-shadow: 0 0 0 2px #dbe6ff; }
+  .src-title {
+    display:flex; align-items:center; justify-content:space-between;
+    font-size: 13.5px; font-weight: 700; margin-bottom: 10px;
+  }
+  .active-tag {
+    display:none; font-size: 11px; font-weight: 700; letter-spacing:.04em;
+    background: var(--accent); color:#fff; padding: 2px 8px; border-radius: 999px;
+  }
+  .src-block.active .active-tag { display:inline-block; }
+  .hint { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; line-height: 1.5; }
+  .hint.warn { color: #b45309; }
+
+  .summary-line {
+    font-size: 13.5px; font-weight: 600;
+    background: #f3f6ff; border: 1px solid #dbe6ff; color: #1e3a8a;
+    border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
+  }
+  .summary-line small { display:block; font-weight: 400; color: #4b5d8f; margin-top: 3px; }
+
+  /* ---------- address book modal ---------- */
+  .modal {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(15,20,35,.5);
+    display: none;
+  }
+  .modal.show { display: block; }
+  .sheet {
+    background: #fff;
+    max-width: 760px; height: 100%;
+    margin: 0 auto;
+    display: flex; flex-direction: column;
+  }
+  @media (min-width: 800px) {
+    .sheet { height: calc(100% - 48px); margin-top: 24px; border-radius: 14px; overflow: hidden; }
+  }
+  .sheet-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--line); }
+  .sheet-head .top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+  .sheet-head h3 { margin:0; font-size: 16px; }
+  .sheet-head input[type="text"] { font-family: inherit; font-size: 14px; }
+  .sheet-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; font-size:13px; color: var(--muted); }
+  .sheet-tools button { padding: 6px 11px; font-size: 12.5px; }
+  .sheet-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .sheet-foot { padding: 12px 16px; border-top: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .sheet-foot span { font-size: 13px; color: var(--muted); }
+
+  .mrow { border-bottom: 1px solid #eef0f4; }
+  .mrow-head { display:flex; align-items:center; gap: 10px; padding: 10px 16px; }
+  .mrow-head input[type="checkbox"] { width: 18px; height: 18px; flex: none; margin: 0; }
+  .mname {
+    flex: 1; display:flex; align-items:center; justify-content:space-between; gap:8px;
+    text-align: left; background: none; color: var(--ink);
+    padding: 4px 0; font-size: 14px; font-weight: 600; border-radius: 0;
+  }
+  .mname:hover { background: none; color: var(--accent); }
+  .chev { color: var(--muted); font-size: 12px; transition: transform .15s ease; flex:none; }
+  .mrow.open .chev { transform: rotate(90deg); }
+  .mdetail { display:none; padding: 0 16px 12px 44px; font-size: 13px; line-height: 1.55; color: #374151; }
+  .mrow.open .mdetail { display:block; }
+  .mdetail .meta { color: var(--muted); margin-bottom: 3px; }
+  .mdetail .meta b { color: var(--ink); }
+  .mrow.picked { background: #f5f8ff; }
+  .empty-msg { padding: 28px 16px; text-align:center; color: var(--muted); font-size: 14px; display:none; }
 </style>
 </head>
 <body>
@@ -184,33 +255,80 @@
     </div>
   </div>
 
-  <!-- STEP 2: CHOOSE STATES -->
+  <!-- STEP 2: CHOOSE LABELS -->
   <div class="card" id="stateCard" style="display:none;">
-    <h2><span class="step-num">2</span> Choose which records to include <span id="totalBadge" class="count-badge" style="display:none;"></span></h2>
+    <h2><span class="step-num">2</span> Choose which labels to make <span id="totalBadge" class="count-badge" style="display:none;"></span></h2>
+    <p class="hint" style="margin:-4px 0 14px;">Pick <b>one</b> of the three ways below. Whichever you used last is the one that will be printed.</p>
 
-    <div class="row">
-      <button class="secondary" id="presetApTs">AP + TS only</button>
-      <button class="secondary" id="presetAll">All states</button>
-      <button class="secondary" id="presetNone">Clear selection</button>
+    <!-- A: by state -->
+    <div class="src-block" id="blockStates">
+      <div class="src-title"><span>A. By state</span><span class="active-tag">ACTIVE</span></div>
+      <div class="row">
+        <button class="secondary" id="presetApTs">AP + TS only</button>
+        <button class="secondary" id="presetAll">All states</button>
+        <button class="secondary" id="presetNone">Clear selection</button>
+      </div>
+      <div id="stateGrid" class="state-grid"></div>
+      <p class="placeholder-note" id="selectedCount"></p>
     </div>
 
-    <div id="stateGrid" class="state-grid"></div>
-    <p class="placeholder-note" id="selectedCount"></p>
+    <!-- B: by membership numbers -->
+    <div class="src-block" id="blockNumbers">
+      <div class="src-title"><span>B. By membership numbers</span><span class="active-tag">ACTIVE</span></div>
+      <textarea id="numbersInput" class="nums" placeholder="e.g.  101, 205, 311, 400-410"></textarea>
+      <p class="hint" id="numbersHint">Comma-separated membership numbers (MEMNO). Ranges like 400-410 also work.</p>
+    </div>
+
+    <!-- C: from address book -->
+    <div class="src-block" id="blockPicked">
+      <div class="src-title"><span>C. Pick from the address book</span><span class="active-tag">ACTIVE</span></div>
+      <div class="row">
+        <button class="secondary" id="openBookBtn">Open address book</button>
+        <button class="secondary" id="clearPickedBtn">Clear ticks</button>
+        <span class="placeholder-note" id="pickedCount" style="margin:0;"></span>
+      </div>
+    </div>
   </div>
 
   <!-- STEP 3: GENERATE -->
   <div class="card" id="genCard" style="display:none;">
     <h2><span class="step-num">3</span> Generate PDF</h2>
+    <div class="summary-line" id="summaryLine">Nothing selected yet.</div>
     <div class="row">
       <button id="generateBtn">Generate &amp; download PDF</button>
       <span id="genStatus" class="status"></span>
     </div>
     <p class="footer-note">
-      Labels are sorted alphabetically by <b>name</b>, 4 per row, A4 page.<br/>
+      Labels are sorted alphabetically by <b>name</b>, 4 per row, A4 page. Records without a name are skipped.<br/>
       When printing: use <b>100% / Actual size</b> (not "Fit to page") so the cut-lines print at the right size, then cut along the grey borders.
     </p>
   </div>
 
+</div>
+
+<!-- ADDRESS BOOK MODAL -->
+<div class="modal" id="bookModal" aria-hidden="true">
+  <div class="sheet" role="dialog" aria-label="Address book">
+    <div class="sheet-head">
+      <div class="top">
+        <h3>Address book</h3>
+        <button class="secondary" id="bookCloseX" style="padding:6px 12px;">Close</button>
+      </div>
+      <input type="text" id="bookSearch" placeholder="Search by name, membership no. or place…" autocomplete="off" />
+      <div class="sheet-tools">
+        <button class="secondary" id="bookSelectVisible">Tick all shown</button>
+        <button class="secondary" id="bookUntickVisible">Untick all shown</button>
+        <button class="secondary" id="bookClearAll">Clear all ticks</button>
+        <span id="bookCounts"></span>
+      </div>
+    </div>
+    <div class="sheet-list" id="bookList"></div>
+    <div class="empty-msg" id="bookEmpty">No members match your search.</div>
+    <div class="sheet-foot">
+      <span id="bookFootCount"></span>
+      <button id="bookUseBtn">Use selected</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -219,6 +337,8 @@
 
   // ---------- column mapping (matched by header name, not fixed index) ----------
   const COL_ALIASES = {
+    MEMNO: ['MEMNO', 'MEM NO', 'MEMBERSHIP NO', 'MEMBERSHIP NUMBER'],
+    SRNO: ['SRNO', 'SR NO', 'SR.NO', 'SR. NO'],
     NAME: ['NAME'],
     ADD1: ['ADD1'],
     ADD2: ['ADD2'],
@@ -234,6 +354,16 @@
     if (v === null || v === undefined) return '';
     return String(v).trim();
   }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  // normalise a membership number so "0101", "101", " 101 " all match
+  function normMem(v) {
+    const t = clean(v).toUpperCase();
+    return /^\d+$/.test(t) ? String(parseInt(t, 10)) : t;
+  }
 
   function findColIndex(header, aliases) {
     const upper = header.map((h) => clean(h).toUpperCase());
@@ -245,10 +375,32 @@
   }
 
   // ---------- state ----------
-  let allRows = [];     // raw data rows (excluding header)
-  let COL = null;       // resolved column indices
-  let allLabels = [];   // built label objects, all rows
-  let stateCounts = {}; // state code -> count
+  let COL = null;
+  let members = [];      // all named records, sorted by name: {key,name,memno,srno,state,search,label}
+  let memByMemno = {};   // normalised memno -> [member,...]
+  let stateCounts = {};  // state code -> count
+  let mode = 'states';   // 'states' | 'numbers' | 'picked'  (whichever was used last)
+  const picked = new Set();     // member keys ticked in the address book
+  const expanded = new Set();   // member keys whose details are open
+
+  // ---------- session memory (this browser tab only) ----------
+  const SESSION_KEY = 'labelGenSession_v1';
+  function saveSession() {
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        mode: mode,
+        numbers: document.getElementById('numbersInput').value,
+        picked: Array.from(picked),
+        states: getSelectedStates(),
+      }));
+    } catch (e) { /* storage unavailable: just skip */ }
+  }
+  function loadSession() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
 
   // ---------- data loading ----------
   function setStatus(el, kind, msg) {
@@ -258,138 +410,16 @@
 
   function parseArrayPayload(text) {
     let t = text.trim();
-    // strip a leading "data =" / "var data =" / "const data =" style assignment
     t = t.replace(/^\s*(var|let|const)?\s*[A-Za-z_$][\w$]*\s*=\s*/, '');
-    // strip a single trailing semicolon
     t = t.replace(/;\s*$/, '');
     try {
       return JSON.parse(t);
     } catch (e) {
-      // fall back to a JS literal (handles unquoted edge cases, trailing commas, etc.)
       // eslint-disable-next-line no-new-func
       return Function('"use strict"; return (' + t + ');')();
     }
   }
 
-  function ingestData(rawArray) {
-    if (!Array.isArray(rawArray) || rawArray.length < 2) {
-      throw new Error('Data does not look like an array of rows with a header row.');
-    }
-    const header = rawArray[0];
-    const nameIdx = findColIndex(header, COL_ALIASES.NAME);
-    const stateIdx = findColIndex(header, COL_ALIASES.STATE);
-    if (nameIdx === -1 || stateIdx === -1) {
-      throw new Error('Could not find NAME / STATE columns in the header row.');
-    }
-    COL = {
-      NAME: nameIdx,
-      ADD1: findColIndex(header, COL_ALIASES.ADD1),
-      ADD2: findColIndex(header, COL_ALIASES.ADD2),
-      ADD3: findColIndex(header, COL_ALIASES.ADD3),
-      DISTRICT: findColIndex(header, COL_ALIASES.DISTRICT),
-      PLACE: findColIndex(header, COL_ALIASES.PLACE),
-      PINCODE: findColIndex(header, COL_ALIASES.PINCODE),
-      MOBILE: findColIndex(header, COL_ALIASES.MOBILE),
-      STATE: stateIdx,
-    };
-
-    allRows = rawArray.slice(1).filter((r) => clean(r[COL.NAME]) !== '');
-
-    stateCounts = {};
-    allRows.forEach((r) => {
-      const s = clean(r[COL.STATE]).toUpperCase() || '(blank)';
-      stateCounts[s] = (stateCounts[s] || 0) + 1;
-    });
-
-    buildStateGrid();
-    document.getElementById('stateCard').style.display = '';
-    document.getElementById('genCard').style.display = '';
-    document.getElementById('totalBadge').style.display = '';
-    document.getElementById('totalBadge').textContent = allRows.length + ' records loaded';
-  }
-
-  document.getElementById('fetchBtn').addEventListener('click', async function () {
-    const url = document.getElementById('apiUrl').value.trim();
-    const statusEl = document.getElementById('fetchStatus');
-    if (!url) { setStatus(statusEl, 'err', 'Enter a URL first.'); return; }
-    setStatus(statusEl, 'info', 'Fetching…');
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Server responded with ' + res.status);
-      const text = await res.text();
-      const arr = parseArrayPayload(text);
-      ingestData(arr);
-      setStatus(statusEl, 'ok', 'Loaded ' + allRows.length + ' records.');
-    } catch (err) {
-      setStatus(
-        statusEl, 'err',
-        'Could not fetch automatically (' + err.message + '). ' +
-        'If your browser is blocking the request, use "Paste data manually" below instead.'
-      );
-    }
-  });
-
-  document.getElementById('pasteBtn').addEventListener('click', function () {
-    const raw = document.getElementById('pasteArea').value;
-    const statusEl = document.getElementById('fetchStatus');
-    if (!raw.trim()) { setStatus(statusEl, 'err', 'Paste the data first.'); return; }
-    try {
-      const arr = parseArrayPayload(raw);
-      ingestData(arr);
-      setStatus(statusEl, 'ok', 'Loaded ' + allRows.length + ' records (pasted).');
-    } catch (err) {
-      setStatus(statusEl, 'err', 'Could not parse pasted data: ' + err.message);
-    }
-  });
-
-  // ---------- state selection UI ----------
-  function buildStateGrid() {
-    const grid = document.getElementById('stateGrid');
-    grid.innerHTML = '';
-    const states = Object.keys(stateCounts).sort();
-    states.forEach((s) => {
-      const chip = document.createElement('label');
-      chip.className = 'state-chip';
-      chip.innerHTML =
-        '<input type="checkbox" value="' + s + '" /> ' +
-        s + ' <span style="color:var(--muted)">(' + stateCounts[s] + ')</span>';
-      grid.appendChild(chip);
-    });
-    grid.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-      cb.addEventListener('change', updateSelectedCount);
-    });
-    updateSelectedCount();
-  }
-
-  function updateSelectedCount() {
-    const checked = getSelectedStates();
-    const total = checked.reduce((sum, s) => sum + (stateCounts[s] || 0), 0);
-    document.getElementById('selectedCount').textContent =
-      checked.length === 0
-        ? 'No states selected yet.'
-        : checked.length + ' state(s) selected — ' + total + ' labels.';
-  }
-
-  function getSelectedStates() {
-    return Array.from(document.querySelectorAll('#stateGrid input[type="checkbox"]:checked')).map((cb) => cb.value);
-  }
-
-  document.getElementById('presetApTs').addEventListener('click', function () {
-    document.querySelectorAll('#stateGrid input[type="checkbox"]').forEach((cb) => {
-      cb.checked = (cb.value === 'AP' || cb.value === 'TS');
-    });
-    updateSelectedCount();
-  });
-  document.getElementById('presetAll').addEventListener('click', function () {
-    document.querySelectorAll('#stateGrid input[type="checkbox"]').forEach((cb) => { cb.checked = true; });
-    updateSelectedCount();
-  });
-  document.getElementById('presetNone').addEventListener('click', function () {
-    document.querySelectorAll('#stateGrid input[type="checkbox"]').forEach((cb) => { cb.checked = false; });
-    updateSelectedCount();
-  });
-
-  // ---------- label building ----------
   function buildLabel(r) {
     const name = clean(r[COL.NAME]);
     const parts = [
@@ -410,11 +440,363 @@
     return { name: name, addrLine: addrLine, mobileLine: mobileLine };
   }
 
+  function ingestData(rawArray) {
+    if (!Array.isArray(rawArray) || rawArray.length < 2) {
+      throw new Error('Data does not look like an array of rows with a header row.');
+    }
+    const header = rawArray[0];
+    const nameIdx = findColIndex(header, COL_ALIASES.NAME);
+    const stateIdx = findColIndex(header, COL_ALIASES.STATE);
+    if (nameIdx === -1 || stateIdx === -1) {
+      throw new Error('Could not find NAME / STATE columns in the header row.');
+    }
+    COL = { STATE: stateIdx, NAME: nameIdx };
+    ['MEMNO', 'SRNO', 'ADD1', 'ADD2', 'ADD3', 'DISTRICT', 'PLACE', 'PINCODE', 'MOBILE'].forEach(function (k) {
+      COL[k] = findColIndex(header, COL_ALIASES[k]);
+    });
+
+    // records without a name are skipped everywhere
+    const rows = rawArray.slice(1).filter((r) => clean(r[COL.NAME]) !== '');
+
+    const seenKeys = {};
+    members = rows.map(function (r) {
+      const label = buildLabel(r);
+      const memno = COL.MEMNO !== -1 ? clean(r[COL.MEMNO]) : '';
+      const srno = COL.SRNO !== -1 ? clean(r[COL.SRNO]) : '';
+      let key = normMem(memno) + '|' + label.name.toUpperCase();
+      if (seenKeys[key]) { seenKeys[key] += 1; key += '#' + seenKeys[key]; } else { seenKeys[key] = 1; }
+      const place = COL.PLACE !== -1 ? clean(r[COL.PLACE]) : '';
+      return {
+        key: key,
+        name: label.name,
+        memno: memno,
+        srno: srno,
+        state: clean(r[COL.STATE]).toUpperCase() || '(blank)',
+        label: label,
+        search: (label.name + ' ' + memno + ' ' + place).toLowerCase(),
+      };
+    });
+    members.sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+
+    memByMemno = {};
+    members.forEach(function (m) {
+      const k = normMem(m.memno);
+      if (k === '') return;
+      (memByMemno[k] = memByMemno[k] || []).push(m);
+    });
+
+    stateCounts = {};
+    members.forEach((m) => { stateCounts[m.state] = (stateCounts[m.state] || 0) + 1; });
+
+    buildStateGrid();
+    buildBookList();
+
+    // restore this tab's earlier choices (current session only)
+    picked.clear();
+    expanded.clear();
+    const sess = loadSession();
+    if (sess) {
+      const validKeys = new Set(members.map((m) => m.key));
+      (sess.picked || []).forEach((k) => { if (validKeys.has(k)) picked.add(k); });
+      document.getElementById('numbersInput').value = sess.numbers || '';
+      const stSet = new Set(sess.states || []);
+      document.querySelectorAll('#stateGrid input[type="checkbox"]').forEach((cb) => { cb.checked = stSet.has(cb.value); });
+      mode = ['states', 'numbers', 'picked'].indexOf(sess.mode) !== -1 ? sess.mode : 'states';
+      syncBookTicks();
+    }
+
+    document.getElementById('stateCard').style.display = '';
+    document.getElementById('genCard').style.display = '';
+    document.getElementById('totalBadge').style.display = '';
+    document.getElementById('totalBadge').textContent = members.length + ' records loaded';
+    refreshAll();
+  }
+
+  document.getElementById('fetchBtn').addEventListener('click', async function () {
+    const url = document.getElementById('apiUrl').value.trim();
+    const statusEl = document.getElementById('fetchStatus');
+    if (!url) { setStatus(statusEl, 'err', 'Enter a URL first.'); return; }
+    setStatus(statusEl, 'info', 'Fetching…');
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Server responded with ' + res.status);
+      const text = await res.text();
+      const arr = parseArrayPayload(text);
+      ingestData(arr);
+      setStatus(statusEl, 'ok', 'Loaded ' + members.length + ' records.');
+    } catch (err) {
+      setStatus(
+        statusEl, 'err',
+        'Could not fetch automatically (' + err.message + '). ' +
+        'If your browser is blocking the request, use "Paste data manually" below instead.'
+      );
+    }
+  });
+
+  document.getElementById('pasteBtn').addEventListener('click', function () {
+    const raw = document.getElementById('pasteArea').value;
+    const statusEl = document.getElementById('fetchStatus');
+    if (!raw.trim()) { setStatus(statusEl, 'err', 'Paste the data first.'); return; }
+    try {
+      const arr = parseArrayPayload(raw);
+      ingestData(arr);
+      setStatus(statusEl, 'ok', 'Loaded ' + members.length + ' records (pasted).');
+    } catch (err) {
+      setStatus(statusEl, 'err', 'Could not parse pasted data: ' + err.message);
+    }
+  });
+
+  // ---------- A: states ----------
+  function buildStateGrid() {
+    const grid = document.getElementById('stateGrid');
+    grid.innerHTML = '';
+    Object.keys(stateCounts).sort().forEach(function (s) {
+      const chip = document.createElement('label');
+      chip.className = 'state-chip';
+      chip.innerHTML =
+        '<input type="checkbox" value="' + esc(s) + '" /> ' +
+        esc(s) + ' <span style="color:var(--muted)">(' + stateCounts[s] + ')</span>';
+      grid.appendChild(chip);
+    });
+    grid.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener('change', function () { setMode('states'); });
+    });
+  }
+  function getSelectedStates() {
+    return Array.from(document.querySelectorAll('#stateGrid input[type="checkbox"]:checked')).map((cb) => cb.value);
+  }
+  function setAllStates(fn) {
+    document.querySelectorAll('#stateGrid input[type="checkbox"]').forEach((cb) => { cb.checked = fn(cb.value); });
+    setMode('states');
+  }
+  document.getElementById('presetApTs').addEventListener('click', () => setAllStates((v) => v === 'AP' || v === 'TS'));
+  document.getElementById('presetAll').addEventListener('click', () => setAllStates(() => true));
+  document.getElementById('presetNone').addEventListener('click', () => setAllStates(() => false));
+
+  // ---------- B: membership numbers ----------
+  function parseNumbers(text) {
+    const t = text.replace(/\s*-\s*/g, '-');
+    const tokens = t.split(/[,;\s]+/).filter(Boolean);
+    const found = [];
+    const seen = new Set();
+    const notFound = [];
+    const bigRanges = [];
+    let asked = 0;
+
+    function take(norm, explicit, shown) {
+      const hits = memByMemno[norm];
+      if (hits) {
+        hits.forEach((m) => { if (!seen.has(m.key)) { seen.add(m.key); found.push(m); } });
+      } else if (explicit && notFound.indexOf(shown) === -1) {
+        notFound.push(shown);
+      }
+    }
+
+    tokens.forEach(function (tok) {
+      const rm = tok.match(/^(\d+)-(\d+)$/);
+      if (rm) {
+        let a = parseInt(rm[1], 10), b = parseInt(rm[2], 10);
+        if (a > b) { const tmp = a; a = b; b = tmp; }
+        if (b - a > 5000) { bigRanges.push(tok); return; }
+        for (let i = a; i <= b; i++) { asked++; take(String(i), false, ''); }
+      } else {
+        asked++;
+        take(normMem(tok), true, tok);
+      }
+    });
+    return { members: found, notFound: notFound, bigRanges: bigRanges, asked: asked };
+  }
+
+  document.getElementById('numbersInput').addEventListener('input', function () {
+    if (this.value.trim() === '') {
+      if (mode === 'numbers') mode = 'states';
+      refreshAll();
+    } else {
+      setMode('numbers');
+    }
+  });
+
+  // ---------- C: address book ----------
+  function buildBookList() {
+    const list = document.getElementById('bookList');
+    list.innerHTML = members.map(function (m, i) {
+      return '<div class="mrow" data-i="' + i + '" data-key="' + esc(m.key) + '">' +
+        '<div class="mrow-head">' +
+          '<input type="checkbox" class="mpick" aria-label="Select ' + esc(m.name) + '" />' +
+          '<button class="mname" type="button"><span>' + esc(m.name) + '</span><span class="chev">&#9656;</span></button>' +
+        '</div>' +
+        '<div class="mdetail">' +
+          '<div class="meta"><b>Membership No:</b> ' + esc(m.memno || '-') + ' &nbsp;&middot;&nbsp; <b>Sr No:</b> ' + esc(m.srno || '-') + '</div>' +
+          '<div>' + esc(m.label.addrLine || '(no address)') + '</div>' +
+          (m.label.mobileLine ? '<div>' + esc(m.label.mobileLine) + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function syncBookTicks() {
+    document.querySelectorAll('#bookList .mrow').forEach(function (row) {
+      const k = row.getAttribute('data-key');
+      const on = picked.has(k);
+      row.querySelector('.mpick').checked = on;
+      row.classList.toggle('picked', on);
+    });
+  }
+
+  function visibleRows() {
+    return Array.from(document.querySelectorAll('#bookList .mrow')).filter((r) => r.style.display !== 'none');
+  }
+
+  function updateBookCounts() {
+    const shown = visibleRows().length;
+    document.getElementById('bookCounts').textContent = 'Showing ' + shown + ' of ' + members.length;
+    document.getElementById('bookFootCount').textContent = picked.size + ' selected';
+    document.getElementById('bookEmpty').style.display = shown === 0 ? 'block' : 'none';
+  }
+
+  function applyBookFilter() {
+    const q = document.getElementById('bookSearch').value.trim().toLowerCase();
+    const rows = document.querySelectorAll('#bookList .mrow');
+    for (let i = 0; i < rows.length; i++) {
+      rows[i].style.display = (q === '' || members[i].search.indexOf(q) !== -1) ? '' : 'none';
+    }
+    updateBookCounts();
+  }
+
+  document.getElementById('bookSearch').addEventListener('input', applyBookFilter);
+
+  document.getElementById('bookList').addEventListener('click', function (e) {
+    const row = e.target.closest('.mrow');
+    if (!row) return;
+    const key = row.getAttribute('data-key');
+    if (e.target.classList.contains('mpick')) {
+      if (e.target.checked) picked.add(key); else picked.delete(key);
+      row.classList.toggle('picked', e.target.checked);
+      if (picked.size > 0) setMode('picked');
+      else { if (mode === 'picked') mode = 'states'; refreshAll(); }
+      updateBookCounts();
+      return;
+    }
+    if (e.target.closest('.mname')) {
+      row.classList.toggle('open');
+      if (row.classList.contains('open')) expanded.add(key); else expanded.delete(key);
+    }
+  });
+
+  function bulkTick(rows, on) {
+    rows.forEach(function (row) {
+      const k = row.getAttribute('data-key');
+      if (on) picked.add(k); else picked.delete(k);
+    });
+    syncBookTicks();
+    if (picked.size > 0) setMode('picked');
+    else { if (mode === 'picked') mode = 'states'; refreshAll(); }
+    updateBookCounts();
+  }
+  document.getElementById('bookSelectVisible').addEventListener('click', () => bulkTick(visibleRows(), true));
+  document.getElementById('bookUntickVisible').addEventListener('click', () => bulkTick(visibleRows(), false));
+  document.getElementById('bookClearAll').addEventListener('click', function () {
+    picked.clear(); syncBookTicks();
+    if (mode === 'picked') mode = 'states';
+    refreshAll(); updateBookCounts();
+  });
+  document.getElementById('clearPickedBtn').addEventListener('click', function () {
+    picked.clear(); syncBookTicks();
+    if (mode === 'picked') mode = 'states';
+    refreshAll(); updateBookCounts();
+  });
+
+  function openBook() {
+    document.getElementById('bookModal').classList.add('show');
+    document.getElementById('bookModal').setAttribute('aria-hidden', 'false');
+    document.body.classList.add('lock');
+    syncBookTicks();
+    applyBookFilter();
+  }
+  function closeBook() {
+    document.getElementById('bookModal').classList.remove('show');
+    document.getElementById('bookModal').setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('lock');
+  }
+  document.getElementById('openBookBtn').addEventListener('click', openBook);
+  document.getElementById('bookCloseX').addEventListener('click', closeBook);
+  document.getElementById('bookUseBtn').addEventListener('click', function () {
+    if (picked.size > 0) setMode('picked');
+    closeBook();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.getElementById('bookModal').classList.contains('show')) closeBook();
+  });
+
+  // ---------- active source + summary ----------
+  function setMode(m) {
+    mode = m;
+    refreshAll();
+  }
+
+  function getActiveResult() {
+    if (mode === 'numbers') {
+      const r = parseNumbers(document.getElementById('numbersInput').value);
+      return { members: r.members, numbers: r };
+    }
+    if (mode === 'picked') {
+      return { members: members.filter((m) => picked.has(m.key)) };
+    }
+    const sel = new Set(getSelectedStates());
+    return { members: members.filter((m) => sel.has(m.state)) };
+  }
+
+  function refreshAll() {
+    // highlight active block
+    document.getElementById('blockStates').classList.toggle('active', mode === 'states');
+    document.getElementById('blockNumbers').classList.toggle('active', mode === 'numbers');
+    document.getElementById('blockPicked').classList.toggle('active', mode === 'picked');
+
+    // state card note
+    const checked = getSelectedStates();
+    const stTotal = checked.reduce((s, k) => s + (stateCounts[k] || 0), 0);
+    document.getElementById('selectedCount').textContent =
+      checked.length === 0 ? 'No states selected.' : checked.length + ' state(s) selected — ' + stTotal + ' labels.';
+
+    // numbers hint
+    const hint = document.getElementById('numbersHint');
+    const txt = document.getElementById('numbersInput').value;
+    if (txt.trim() === '') {
+      hint.className = 'hint';
+      hint.textContent = 'Comma-separated membership numbers (MEMNO). Ranges like 400-410 also work.';
+    } else {
+      const r = parseNumbers(txt);
+      let msg = r.members.length + ' member(s) matched.';
+      let warn = false;
+      if (r.notFound.length) {
+        warn = true;
+        msg += ' Not found: ' + r.notFound.slice(0, 15).join(', ') + (r.notFound.length > 15 ? ' … (+' + (r.notFound.length - 15) + ' more)' : '') + '.';
+      }
+      if (r.bigRanges.length) { warn = true; msg += ' Range too large, ignored: ' + r.bigRanges.join(', ') + '.'; }
+      hint.className = 'hint' + (warn ? ' warn' : '');
+      hint.textContent = msg;
+    }
+
+    // picked note
+    document.getElementById('pickedCount').textContent = picked.size === 0 ? 'Nothing ticked yet.' : picked.size + ' member(s) ticked.';
+    document.getElementById('bookFootCount').textContent = picked.size + ' selected';
+
+    // summary line in step 3
+    const res = getActiveResult();
+    const names = { states: 'By state', numbers: 'Typed membership numbers', picked: 'Ticked from address book' };
+    const el = document.getElementById('summaryLine');
+    el.innerHTML = '<b>' + esc(names[mode]) + '</b> — ' + res.members.length + ' label(s) will be made.';
+    if (mode === 'numbers' && res.numbers && res.numbers.notFound.length) {
+      el.innerHTML += '<small>Not found: ' + esc(res.numbers.notFound.slice(0, 15).join(', ')) + (res.numbers.notFound.length > 15 ? ' …' : '') + '</small>';
+    }
+    saveSession();
+  }
+
   function sortByName(labels) {
     return labels.slice().sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
   }
 
-  // ---------- PDF layout (mirrors the print-ready A4 layout) ----------
+  // ---------- PDF layout (print-ready A4) ----------
   const PAGE_W = 210;
   const MARGIN = 6;
   const COLS = 4;
@@ -515,36 +897,42 @@
   // ---------- generate button ----------
   document.getElementById('generateBtn').addEventListener('click', function () {
     const statusEl = document.getElementById('genStatus');
-    const selected = getSelectedStates();
-    if (selected.length === 0) {
-      setStatus(statusEl, 'err', 'Select at least one state first.');
+    const res = getActiveResult();
+    if (res.members.length === 0) {
+      const why = {
+        states: 'Select at least one state first.',
+        numbers: 'No matching membership numbers found.',
+        picked: 'Tick at least one member in the address book first.',
+      };
+      setStatus(statusEl, 'err', why[mode]);
       return;
     }
     setStatus(statusEl, 'info', 'Building PDF…');
 
-    // small delay so the "Building…" status paints before the (synchronous) PDF work
     setTimeout(function () {
       try {
-        const selectedSet = new Set(selected);
-        const filteredRows = allRows.filter((r) => {
-          const s = clean(r[COL.STATE]).toUpperCase() || '(blank)';
-          return selectedSet.has(s);
-        });
-        const labels = sortByName(filteredRows.map(buildLabel));
+        const labels = sortByName(res.members.map((m) => ({
+          name: m.label.name, addrLine: m.label.addrLine, mobileLine: m.label.mobileLine,
+        })));
 
-        const allStatesKnown = Object.keys(stateCounts);
         let tag;
-        if (selected.length === allStatesKnown.length) {
-          tag = 'ALL_STATES';
-        } else if (selectedSet.has('AP') && selectedSet.has('TS') && selected.length === 2) {
-          tag = 'AP_TS';
+        if (mode === 'states') {
+          const selected = getSelectedStates();
+          const selSet = new Set(selected);
+          if (selected.length === Object.keys(stateCounts).length) tag = 'ALL_STATES';
+          else if (selSet.has('AP') && selSet.has('TS') && selected.length === 2) tag = 'AP_TS';
+          else tag = selected.slice().sort().join('_');
         } else {
-          tag = selected.slice().sort().join('_');
+          tag = 'SELECTED';
         }
         const filename = 'mailing_labels_' + tag + '.pdf';
 
         const pages = generateLabelsPdf(labels, filename);
-        setStatus(statusEl, 'ok', 'Done — ' + labels.length + ' labels, ' + pages + ' pages. Downloaded as ' + filename);
+        let msg = 'Done — ' + labels.length + ' labels, ' + pages + ' pages. Downloaded as ' + filename;
+        if (mode === 'numbers' && res.numbers && res.numbers.notFound.length) {
+          msg += '. Not found: ' + res.numbers.notFound.slice(0, 15).join(', ');
+        }
+        setStatus(statusEl, 'ok', msg);
       } catch (err) {
         setStatus(statusEl, 'err', 'Failed to generate PDF: ' + err.message);
       }
