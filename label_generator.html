@@ -206,6 +206,7 @@
   .sheet-head input[type="text"] { font-family: inherit; font-size: 14px; }
   .sheet-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:10px; font-size:13px; color: var(--muted); }
   .sheet-tools button { padding: 6px 11px; font-size: 12.5px; }
+  .sheet-tools button.on { background: var(--accent); color:#fff; border-color: var(--accent); }
   .sheet-list { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .sheet-foot { padding: 12px 16px; border-top: 1px solid var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px; }
   .sheet-foot span { font-size: 13px; color: var(--muted); }
@@ -319,6 +320,7 @@
         <button class="secondary" id="bookSelectVisible">Tick all shown</button>
         <button class="secondary" id="bookUntickVisible">Untick all shown</button>
         <button class="secondary" id="bookClearAll">Clear all ticks</button>
+        <button class="secondary" id="bookTickedOnly">Show ticked only (0)</button>
         <span id="bookCounts"></span>
       </div>
     </div>
@@ -382,6 +384,7 @@
   let mode = 'states';   // 'states' | 'numbers' | 'picked'  (whichever was used last)
   const picked = new Set();     // member keys ticked in the address book
   const expanded = new Set();   // member keys whose details are open
+  let tickedOnly = false;       // address book: show only ticked members
 
   // ---------- session memory (this browser tab only) ----------
   const SESSION_KEY = 'labelGenSession_v1';
@@ -652,18 +655,28 @@
     document.getElementById('bookCounts').textContent = 'Showing ' + shown + ' of ' + members.length;
     document.getElementById('bookFootCount').textContent = picked.size + ' selected';
     document.getElementById('bookEmpty').style.display = shown === 0 ? 'block' : 'none';
+    document.getElementById('bookEmpty').textContent = tickedOnly ? 'No ticked members match.' : 'No members match your search.';
+    document.getElementById('bookTickedOnly').textContent = tickedOnly ? 'Show all (' + members.length + ')' : 'Show ticked only (' + picked.size + ')';
+    document.getElementById('bookTickedOnly').classList.toggle('on', tickedOnly);
   }
 
   function applyBookFilter() {
     const q = document.getElementById('bookSearch').value.trim().toLowerCase();
     const rows = document.querySelectorAll('#bookList .mrow');
     for (let i = 0; i < rows.length; i++) {
-      rows[i].style.display = (q === '' || members[i].search.indexOf(q) !== -1) ? '' : 'none';
+      const okSearch = q === '' || members[i].search.indexOf(q) !== -1;
+      const okTick = !tickedOnly || picked.has(members[i].key);
+      rows[i].style.display = (okSearch && okTick) ? '' : 'none';
     }
     updateBookCounts();
   }
 
   document.getElementById('bookSearch').addEventListener('input', applyBookFilter);
+  document.getElementById('bookTickedOnly').addEventListener('click', function () {
+    tickedOnly = !tickedOnly;
+    applyBookFilter();
+    document.getElementById('bookList').scrollTop = 0;
+  });
 
   document.getElementById('bookList').addEventListener('click', function (e) {
     const row = e.target.closest('.mrow');
@@ -674,7 +687,7 @@
       row.classList.toggle('picked', e.target.checked);
       if (picked.size > 0) setMode('picked');
       else { if (mode === 'picked') mode = 'states'; refreshAll(); }
-      updateBookCounts();
+      applyBookFilter();
       return;
     }
     if (e.target.closest('.mname')) {
@@ -691,19 +704,19 @@
     syncBookTicks();
     if (picked.size > 0) setMode('picked');
     else { if (mode === 'picked') mode = 'states'; refreshAll(); }
-    updateBookCounts();
+    applyBookFilter();
   }
   document.getElementById('bookSelectVisible').addEventListener('click', () => bulkTick(visibleRows(), true));
   document.getElementById('bookUntickVisible').addEventListener('click', () => bulkTick(visibleRows(), false));
   document.getElementById('bookClearAll').addEventListener('click', function () {
     picked.clear(); syncBookTicks();
     if (mode === 'picked') mode = 'states';
-    refreshAll(); updateBookCounts();
+    refreshAll(); applyBookFilter();
   });
   document.getElementById('clearPickedBtn').addEventListener('click', function () {
     picked.clear(); syncBookTicks();
     if (mode === 'picked') mode = 'states';
-    refreshAll(); updateBookCounts();
+    refreshAll(); applyBookFilter();
   });
 
   function openBook() {
@@ -780,6 +793,7 @@
     // picked note
     document.getElementById('pickedCount').textContent = picked.size === 0 ? 'Nothing ticked yet.' : picked.size + ' member(s) ticked.';
     document.getElementById('bookFootCount').textContent = picked.size + ' selected';
+    document.getElementById('bookTickedOnly').textContent = tickedOnly ? 'Show all (' + members.length + ')' : 'Show ticked only (' + picked.size + ')';
 
     // summary line in step 3
     const res = getActiveResult();
